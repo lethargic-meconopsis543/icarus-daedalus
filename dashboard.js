@@ -14,6 +14,8 @@ const LOG_FILES = {
   "daedalus-code": path.join(ROOT, "templates/code-review/daedalus-log.md"),
 };
 
+const COMPACTION_HISTORY = path.join(ROOT, "compaction-history.md");
+
 const MEMORY_FILES = {
   icarus: path.join(HOME, ".hermes-icarus/memories/MEMORY.md"),
   daedalus: path.join(HOME, ".hermes-daedalus/memories/MEMORY.md"),
@@ -118,6 +120,7 @@ function getStats() {
       daedalus: getAgentInfo("daedalus", AGENT_PATHS.daedalus),
     },
     worlds: worldUrls,
+    compaction: readSafe(COMPACTION_HISTORY),
     totals: {
       dialogueCycles: Math.max(icarus.length, daedalus.length),
       codeCycles: Math.max(icarusCode.length, daedalusCode.length),
@@ -137,7 +140,8 @@ function broadcast() {
 const watched = new Set();
 function watchFiles() {
   for (const f of [...Object.values(LOG_FILES), ...Object.values(MEMORY_FILES),
-    ...Object.values(AGENT_PATHS).map(p => path.join(p, "gateway_state.json"))]) {
+    ...Object.values(AGENT_PATHS).map(p => path.join(p, "gateway_state.json")),
+    COMPACTION_HISTORY]) {
     if (watched.has(f)) continue;
     try { fs.watch(f, { persistent: false }, () => broadcast()); watched.add(f); } catch {}
   }

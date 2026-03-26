@@ -7,3 +7,5 @@ build/
 cron.log
 messages.db
 *.db
+archive/
+compaction-history.md

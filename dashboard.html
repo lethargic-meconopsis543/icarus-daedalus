@@ -166,6 +166,10 @@
   <div id="worlds-content"></div>
 </div>
 
+<div class="panels panel-single" id="panel-compaction">
+  <div id="compaction-content"></div>
+</div>
+
 <div class="panels panel-single" id="panel-guide">
   <div id="guide-content"></div>
 </div>
@@ -190,6 +194,7 @@ function renderTabs(data) {
   tabs.push({ id: "platforms", label: "platforms" });
   tabs.push({ id: "memory", label: "memory" });
   if (data.worlds.length > 0) tabs.push({ id: "worlds", label: "worlds" });
+  if (data.compaction) tabs.push({ id: "compaction", label: "compaction" });
   tabs.push({ id: "guide", label: "guide" });
 
   if (!currentTab || !tabs.find(t => t.id === currentTab)) currentTab = tabs[0].id;
@@ -365,6 +370,43 @@ function renderWorlds(data) {
   $("#worlds-content").innerHTML = data.worlds.map(u => '<a class="world-link" href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(u) + '</a>').join("");
 }
 
+function renderCompaction(data) {
+  if (!data.compaction) {
+    $("#compaction-content").innerHTML = '<div class="empty-state">no compaction events yet</div>';
+    return;
+  }
+  var entries = data.compaction.split(/^---$/m).filter(function(b) { return b.trim(); });
+  var h = '<div class="guide">';
+  h += '<h2>compaction history</h2>';
+  h += '<p>The memory curator runs before each cycle when logs exceed 150 lines or every 10 cycles. It compresses old entries, archives originals, and restarts gateways.</p>';
+  var events = entries.filter(function(e) { return e.match(/## \d{4}/); });
+  if (events.length === 0) {
+    h += '<div class="empty-state">no compaction events yet</div>';
+  } else {
+    events.reverse();
+    for (var i = 0; i < events.length; i++) {
+      var e = events[i].trim();
+      var ts = (e.match(/## (.+)/)||[])[1] || "";
+      var lines = e.split("\\n").filter(function(l) { return l && !l.startsWith("##"); });
+      h += '<div class="cycle"><div class="cycle-header"><span class="cycle-num">COMPACTION</span><span class="cycle-ts">' + esc(ts) + '</span></div>';
+      for (var j = 0; j < lines.length; j++) {
+        var line = lines[j].trim();
+        if (!line) continue;
+        if (line.match(/dropped/i)) {
+          h += '<div class="cycle-field"><span class="severity severity-must">' + esc(line) + '</span></div>';
+        } else if (line.match(/compressed/i)) {
+          h += '<div class="cycle-field"><span class="severity severity-should">' + esc(line) + '</span></div>';
+        } else {
+          h += '<div class="cycle-field"><span class="field-body">' + esc(line) + '</span></div>';
+        }
+      }
+      h += '</div>';
+    }
+  }
+  h += '</div>';
+  $("#compaction-content").innerHTML = h;
+}
+
 function render(data) {
   renderTabs(data);
   renderStats(data);
@@ -375,6 +417,7 @@ function render(data) {
   renderPlatforms(data);
   renderMemory(data);
   renderWorlds(data);
+  renderCompaction(data);
   renderGuide();
 }
 

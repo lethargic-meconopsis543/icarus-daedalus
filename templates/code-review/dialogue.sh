@@ -36,6 +36,10 @@ fi
 CYCLE=$(grep -c '## Cycle' "$ICARUS_LOG" 2>/dev/null || true)
 CYCLE=$(( ${CYCLE:-0} + 1 ))
 
+# Compact logs and memory if needed
+source "$SCRIPT_DIR/../../compact.sh"
+compact_if_needed "$ICARUS_LOG" "$DAEDALUS_LOG" "$CYCLE" "icarus" "daedalus"
+
 call_claude() {
     local system="$1" prompt="$2"
     local sys_json prompt_json
