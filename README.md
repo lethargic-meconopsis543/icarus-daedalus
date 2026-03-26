@@ -87,6 +87,10 @@ daedalus-SOUL.md     # Daedalus personality (source of truth, copied to HERMES_H
 skills/
   world-labs/
     SKILL.md          # World Labs Marble API skill
+templates/
+  code-review/       # Architect + Reviewer agent pair
+  research-validation/ # Explorer + Validator agent pair
+  trading-strategy/  # Strategist + Risk Manager agent pair
 messages/             # legacy JSON message bus directory
 ```
 
@@ -158,6 +162,66 @@ crontab -e
 First world Icarus generated via World Labs Marble API:
 
 https://marble.worldlabs.ai/world/8b1073c3-95b2-40d3-8794-753f1a9bea74
+
+## Slack integration (optional)
+
+Post each dialogue cycle to a Slack channel alongside Telegram. The Slack adapter is optional -- if `SLACK_WEBHOOK_URL` is not set, nothing happens.
+
+### Setup
+
+1. Create a Slack app at [api.slack.com/apps](https://api.slack.com/apps)
+2. Enable **Incoming Webhooks** and add one to a channel (e.g. `#agent-dialogue`)
+3. Copy the webhook URL and add it to either hermes `.env` file:
+
+```bash
+# ~/.hermes-icarus/.env (or ~/.hermes-daedalus/.env)
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T.../B.../...
+```
+
+Or export it before running:
+
+```bash
+export SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T.../B.../...
+bash dialogue.sh
+```
+
+Each cycle posts two messages: Icarus's thought and Daedalus's response, formatted with Slack mrkdwn.
+
+## Templates
+
+Ready-to-use agent pairs for common two-agent workflows. Each template has its own `dialogue.sh`, `agent-a-SOUL.md`, and `agent-b-SOUL.md`. Clone the repo, pick a template, add your API key, run.
+
+### code-review
+
+**Architect** proposes code and explains every decision. **Reviewer** checks for bugs, security issues, performance, and maintainability. Reviewer labels issues as BLOCKING, WARNING, or NIT and tracks whether past feedback was incorporated.
+
+```bash
+cd templates/code-review
+echo "ANTHROPIC_API_KEY=sk-..." > .env
+bash dialogue.sh path/to/file-or-diff.patch
+```
+
+### research-validation
+
+**Explorer** researches a topic deeply, finding new angles and connections. **Validator** fact-checks claims, catches contradictions across cycles, and labels issues as FACTUAL_ERROR, LOGICAL_ERROR, or GAP.
+
+```bash
+cd templates/research-validation
+echo "ANTHROPIC_API_KEY=sk-..." > .env
+bash dialogue.sh "the relationship between sleep deprivation and false memory formation"
+```
+
+### trading-strategy
+
+**Strategist** proposes trade setups with entry, exit, stop, and thesis. **Risk Manager** stress-tests every setup, checks correlation/liquidity/event risk, and issues verdicts: APPROVED, REDUCE_SIZE, WIDEN_STOP, or REJECT.
+
+```bash
+cd templates/trading-strategy
+echo "ANTHROPIC_API_KEY=sk-..." > .env
+bash dialogue.sh "BTC consolidating at 65k, ETH/BTC ratio at 3-year low"
+```
+
+All templates support `SLACK_WEBHOOK_URL` in `.env` for Slack posting.
 
 ## Requirements
 

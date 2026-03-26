@@ -27,6 +27,9 @@ source_env "$HOME/.hermes-daedalus/.env"
 TELEGRAM_BOT_TOKEN_DAEDALUS="$TELEGRAM_BOT_TOKEN"
 TELEGRAM_GROUP_ID="$TELEGRAM_HOME_CHANNEL"
 
+# Slack webhook (optional -- set in either .env or export before running)
+SLACK_WEBHOOK_URL="${SLACK_WEBHOOK_URL:-}"
+
 # Verify keys
 for var in ANTHROPIC_API_KEY TELEGRAM_BOT_TOKEN_ICARUS TELEGRAM_BOT_TOKEN_DAEDALUS TELEGRAM_GROUP_ID; do
     [ -z "${!var:-}" ] && echo "error: $var not set" && exit 1
@@ -86,6 +89,16 @@ post_telegram() {
         -d "{\"chat_id\":\"$TELEGRAM_GROUP_ID\",\"text\":$text_json,\"parse_mode\":\"Markdown\"}" > /dev/null
 }
 
+post_slack() {
+    [ -z "$SLACK_WEBHOOK_URL" ] && return 0
+    local text="$1"
+    local text_json
+    text_json=$(python3 -c "import sys,json; print(json.dumps(sys.argv[1]))" "$text")
+    curl -s -X POST "$SLACK_WEBHOOK_URL" \
+        -H "Content-Type: application/json" \
+        -d "{\"text\":$text_json}" > /dev/null
+}
+
 # ── ICARUS ──────────────────────────────────────────────
 echo "[$TIMESTAMP] cycle $CYCLE"
 echo ""
@@ -140,6 +153,11 @@ $ICARUS_THOUGHT
 
 _${ICARUS_QUESTION}_"
 post_telegram "$TELEGRAM_BOT_TOKEN_ICARUS" "$ICARUS_TG"
+post_slack ":fire: *Icarus -- Cycle $CYCLE*
+
+$ICARUS_THOUGHT
+
+_${ICARUS_QUESTION}_"
 
 # ── DAEDALUS ────────────────────────────────────────────
 echo "daedalus> reading icarus..."
@@ -193,6 +211,11 @@ $DAEDALUS_RESPONSE
 
 _${DAEDALUS_CHALLENGE}_"
 post_telegram "$TELEGRAM_BOT_TOKEN_DAEDALUS" "$DAEDALUS_TG"
+post_slack ":classical_building: *Daedalus -- Cycle $CYCLE*
+
+$DAEDALUS_RESPONSE
+
+_${DAEDALUS_CHALLENGE}_"
 
 # ── DONE ────────────────────────────────────────────────
 echo "cycle $CYCLE complete"
