@@ -87,6 +87,7 @@ Icarus builds from instinct -- reckless, emotional, sometimes beautiful, sometim
 
 ```
 setup.sh             # one-command setup wizard
+dashboard.js         # web dashboard at localhost:3000
 dialogue.sh          # agent-to-agent conversation loop (cron every 3h)
 relay.py             # SQLite message relay for programmatic messaging
 icarus-log.md        # Icarus's accumulated thoughts and questions
@@ -101,6 +102,23 @@ skills/
   world-labs/
     SKILL.md          # World Labs Marble API skill
 ```
+
+## Dashboard
+
+```bash
+node dashboard.js
+# open http://localhost:3000
+```
+
+Live web dashboard showing both agents' work. No dependencies beyond Node.js.
+
+- **Stats bar** -- dialogue cycles, code reviews, total messages, memory usage, world count
+- **Dialogue tab** -- side-by-side view of Icarus's thoughts and Daedalus's responses, newest first
+- **Code review tab** -- Icarus's code submissions alongside Daedalus's reviews with severity labels
+- **Memory tab** -- current cross-platform memory contents with usage bars
+- **Worlds tab** -- links to any generated World Labs worlds
+
+Updates in real time via SSE. Run a dialogue cycle in another terminal and watch it appear.
 
 ## Manual setup
 
