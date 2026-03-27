@@ -224,21 +224,31 @@ $DAEDALUS_RESPONSE
 _${DAEDALUS_CHALLENGE}_"
 
 # ── MEMORY ──────────────────────────────────────────────
-# Write dialogue summary into hermes memories so both agents can recall
-# conversations when talking on other platforms.
+# Write to Icarus Memory Protocol (~/fabric/) for cross-framework memory
+source "$SCRIPT_DIR/fabric-adapter.sh"
+
+fabric_write "icarus" "telegram" "dialogue" \
+    "Thought: $ICARUS_THOUGHT
+Question: $ICARUS_QUESTION" \
+    "hot" "daedalus:$CYCLE" "dialogue" "" "$CYCLE" > /dev/null
+
+fabric_write "daedalus" "telegram" "dialogue" \
+    "Response: $DAEDALUS_RESPONSE
+Challenge: $DAEDALUS_CHALLENGE" \
+    "hot" "icarus:$CYCLE" "dialogue" "" "$CYCLE" > /dev/null
+
+echo "fabric> written to ~/fabric/"
+
+# Also write to hermes MEMORY.md for backward compatibility
 MEMORY_ENTRY="
 [$TIMESTAMP] Dialogue (cycle $CYCLE)
 Icarus said: $ICARUS_THOUGHT
-Icarus asked: $ICARUS_QUESTION
 Daedalus responded: $DAEDALUS_RESPONSE
-Daedalus challenged: $DAEDALUS_CHALLENGE
 "
 
 ICARUS_MEM="$HOME/.hermes-icarus/memories/MEMORY.md"
 DAEDALUS_MEM="$HOME/.hermes-daedalus/memories/MEMORY.md"
 
-# Append to MEMORY.md (hermes reads this into the system prompt each session).
-# Keep it under 2200 chars total -- trim oldest entries if needed.
 append_memory() {
     local memfile="$1" entry="$2"
     [ -f "$memfile" ] || printf "" > "$memfile"

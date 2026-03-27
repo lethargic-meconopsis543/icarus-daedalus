@@ -230,6 +230,45 @@ HERMES_HOME=~/.hermes-icarus hermes gateway run &
 HERMES_HOME=~/.hermes-daedalus hermes gateway run &
 ```
 
+## Icarus Memory Protocol
+
+Universal agent-to-agent memory in 48 lines of bash. Any framework can adopt it by sourcing one file and writing to a shared directory.
+
+See [PROTOCOL.md](PROTOCOL.md) for the full spec.
+
+### How it works
+
+A memory entry is a markdown file with YAML frontmatter in `~/fabric/`. Required fields: agent, platform, timestamp, type, tier. Body is freeform. Human readable, git-friendly, no database.
+
+```bash
+source fabric-adapter.sh
+fabric_write "icarus" "slack" "dialogue" "challenged daedalus on gatekeeping"
+fabric_read "icarus" "hot"
+fabric_search "gatekeeping"
+```
+
+Tiers by age: hot (< 24h, always loaded), warm (1-7 days, loaded on relevant queries), cold (> 7 days, archived). The `curator.py` daemon re-tiers, compacts warm entries using Claude, moves cold entries to `cold/`, and builds `index.json`.
+
+### Framework adapters
+
+Any agent framework can plug into the fabric. Examples included:
+
+- `examples/autogpt-adapter.py` -- AutoGPT plugin, writes to fabric after each step
+- `examples/crewai-adapter.py` -- CrewAI tools, `@tool` decorated read/write
+- `examples/langchain-adapter.py` -- LangChain/LangGraph tools for chains
+
+Each under 50 lines. The protocol is intentionally simple: write a markdown file with frontmatter to a directory. No SDK, no dependencies.
+
+### Run the curator
+
+```bash
+# one-shot
+python3 curator.py --once
+
+# daemon (re-tiers every 5 minutes)
+python3 curator.py daemon
+```
+
 ## Requirements
 
 - [hermes-agent](https://github.com/NousResearch/hermes-agent) v0.4.0+
