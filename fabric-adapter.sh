@@ -44,7 +44,5 @@ fabric_read() {
 
 fabric_search() {
     [ -d "$FABRIC_DIR" ] || return 0
-    local dirs="$FABRIC_DIR"
-    [ -d "$FABRIC_DIR/cold" ] && dirs="$dirs $FABRIC_DIR/cold"
-    find $dirs -maxdepth 1 -name "*.md" -exec grep -l "$1" {} + 2>/dev/null
+    grep -rl "$1" "$FABRIC_DIR" --include="*.md" 2>/dev/null
 }
