@@ -6,7 +6,20 @@ One folder. Every agent reads it. Every agent writes to it.
 
 ## What it does
 
-Two hermes agents, Icarus and Daedalus, share persistent memory across platforms. Work done on Slack is recallable on Telegram. The memory accumulates across cycles. Each agent reads the full history before responding.
+Two hermes agents, Icarus and Daedalus, share persistent memory across platforms. Work done on Slack is recallable on Telegram, Discord, WhatsApp, Signal, or Email. The memory accumulates across cycles. Each agent reads the full history before responding. The shared brain doesn't care which platform generated a memory.
+
+## Platforms
+
+| Platform | How it connects | What you need |
+|---|---|---|
+| Telegram | hermes gateway | two bot tokens + group chat |
+| Discord | hermes gateway | two bot tokens + channel ID |
+| Slack | hermes gateway + webhook | bot token + app token |
+| WhatsApp | hermes gateway | QR code scan on first start |
+| Signal | signal-cli-rest-api | phone number + API URL |
+| Email | IMAP/SMTP | email address + app password |
+
+All platforms write to the same `~/fabric/` directory. An agent on Discord reads what an agent on WhatsApp wrote. The `platform` field in each memory entry tracks where it came from.
 
 ## Quick start
 
@@ -16,13 +29,13 @@ cd icarus-daedalus
 bash setup.sh
 ```
 
-You need: an Anthropic API key, two Telegram bot tokens, and a Telegram group. The wizard walks you through it.
+You need an Anthropic API key and tokens for whichever platforms you want. The wizard walks you through each one.
 
 ## How it works
 
 `dialogue.sh` calls the Claude API as each agent in sequence. Before each cycle, it reads both conversation logs. After each cycle, it writes entries to `~/fabric/` as markdown files with YAML frontmatter and updates `~/.hermes-*/memories/MEMORY.md` so hermes gateways pick up the context on restart.
 
-Agents on Telegram recall work that happened on Slack because both platforms write to the same memory layer.
+Agents recall work across platforms because every platform writes to `~/fabric/`. Telegram, Discord, Slack, WhatsApp, Signal, Email -- the memory layer doesn't distinguish between them.
 
 ## Proof
 
