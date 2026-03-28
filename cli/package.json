@@ -1,0 +1,9 @@
+{
+  "name": "icarus-fabric",
+  "version": "0.1.0",
+  "description": "shared memory for AI agents",
+  "bin": {
+    "fabric": "./fabric.js"
+  },
+  "license": "MIT"
+}

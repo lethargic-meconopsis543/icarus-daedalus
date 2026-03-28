@@ -101,12 +101,42 @@ bash add-agent.sh --name scout --role 'researcher that finds information'
 
 `dialogue.sh` reads `agents.yml` and cycles through all agents. Each agent sees the full history from every other agent before responding. 3 agents means 3 fabric entries per cycle. All agents share the same `~/fabric/` folder.
 
+## Claude Code hooks
+
+Install with one command:
+
+```bash
+node cli/fabric.js init
+```
+
+This creates `~/fabric/`, installs two Claude Code hooks in `~/.claude/settings.json`, and initializes a git repo for sync.
+
+**Stop hook** (`hooks/on-stop.sh`): runs after every Claude Code response. Captures what was built and writes to `~/fabric/`. Skips short or trivial responses. Async, never blocks.
+
+**SessionStart hook** (`hooks/on-start.sh`): runs at session start. Finds fabric entries relevant to the current project (by name, by agent, by recency) and injects them as context. Claude Code starts each session knowing what happened before.
+
+Both hooks are invisible. The user never runs them manually.
+
+## Git sync
+
+```bash
+bash fabric-sync.sh init              # init git repo in ~/fabric/
+cd ~/fabric && git remote add origin git@github.com:YOU/fabric.git
+bash fabric-sync.sh watch             # auto-sync every 60 seconds
+```
+
+Any machine that clones the fabric repo gets shared memory. Free cross-machine sync via GitHub.
+
 ## Files
 
 ```
 dialogue.sh          conversation loop -- reads agents.yml, runs each agent in sequence
 agents.yml           agent team config -- names, roles, hermes home paths
 add-agent.sh         add a new agent to the team after setup
+hooks/on-stop.sh     Claude Code hook -- auto-writes to fabric after every response
+hooks/on-start.sh    Claude Code hook -- loads relevant context at session start
+fabric-sync.sh       git-based cross-machine sync for ~/fabric/
+cli/fabric.js        npx icarus-fabric init|status|context|sync
 fabric-adapter.sh    memory protocol -- write, read, search in 50 lines of bash
 curator.py           re-tiers entries by age, compacts with Claude, builds index.json
 compact.sh           self-reflecting log compaction before each dialogue cycle
