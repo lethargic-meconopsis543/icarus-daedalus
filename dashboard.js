@@ -10,8 +10,6 @@ if (!HOME) { console.error("error: HOME environment variable not set"); process.
 const LOG_FILES = {
   icarus: path.join(ROOT, "icarus-log.md"),
   daedalus: path.join(ROOT, "daedalus-log.md"),
-  "icarus-code": path.join(ROOT, "templates/code-review/icarus-log.md"),
-  "daedalus-code": path.join(ROOT, "templates/code-review/daedalus-log.md"),
 };
 
 const COMPACTION_HISTORY = path.join(ROOT, "compaction-history.md");
@@ -95,22 +93,17 @@ function getAgentInfo(name, agentPath) {
 function getStats() {
   const icarusRaw = readSafe(LOG_FILES.icarus);
   const daedalusRaw = readSafe(LOG_FILES.daedalus);
-  const icarusCodeRaw = readSafe(LOG_FILES["icarus-code"]);
-  const daedalusCodeRaw = readSafe(LOG_FILES["daedalus-code"]);
   const icarusMem = readSafe(MEMORY_FILES.icarus);
   const daedalusMem = readSafe(MEMORY_FILES.daedalus);
 
   const icarus = parseCycles(icarusRaw);
   const daedalus = parseCycles(daedalusRaw);
-  const icarusCode = parseCycles(icarusCodeRaw);
-  const daedalusCode = parseCycles(daedalusCodeRaw);
 
-  const allText = icarusRaw + daedalusRaw + icarusCodeRaw + daedalusCodeRaw;
+  const allText = icarusRaw + daedalusRaw;
   const worldUrls = [...new Set((allText.match(/https:\/\/(?:marble\.)?worldlabs\.ai\/world\/[a-f0-9-]+/g) || []))];
 
   return {
     dialogue: { icarus, daedalus },
-    codeReview: { icarus: icarusCode, daedalus: daedalusCode },
     memory: {
       icarus: { content: icarusMem, bytes: Buffer.byteLength(icarusMem) },
       daedalus: { content: daedalusMem, bytes: Buffer.byteLength(daedalusMem) },
@@ -123,8 +116,7 @@ function getStats() {
     compaction: readSafe(COMPACTION_HISTORY),
     totals: {
       dialogueCycles: Math.max(icarus.length, daedalus.length),
-      codeCycles: Math.max(icarusCode.length, daedalusCode.length),
-      totalMessages: icarus.length + daedalus.length + icarusCode.length + daedalusCode.length,
+      totalMessages: icarus.length + daedalus.length,
       memoryBytes: Buffer.byteLength(icarusMem) + Buffer.byteLength(daedalusMem),
     },
   };

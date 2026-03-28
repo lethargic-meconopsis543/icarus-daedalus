@@ -149,11 +149,6 @@
   <div class="panel" id="daedalus-dialogue"></div>
 </div>
 
-<div class="panels" id="panel-code">
-  <div class="panel" id="icarus-code"></div>
-  <div class="panel" id="daedalus-code"></div>
-</div>
-
 <div class="panels panel-single" id="panel-platforms">
   <div id="platforms-content"></div>
 </div>
@@ -190,7 +185,6 @@ let currentTab = null;
 function renderTabs(data) {
   const tabs = [];
   if (data.totals.dialogueCycles > 0) tabs.push({ id: "dialogue", label: "dialogue" });
-  if (data.totals.codeCycles > 0) tabs.push({ id: "code", label: "code review" });
   tabs.push({ id: "platforms", label: "platforms" });
   tabs.push({ id: "memory", label: "memory" });
   if (data.worlds.length > 0) tabs.push({ id: "worlds", label: "worlds" });
@@ -216,7 +210,7 @@ function esc(s) { const d = document.createElement("div"); d.textContent = s; re
 function renderStats(data) {
   const t = data.totals;
   const memPct = Math.round((t.memoryBytes / 4400) * 100);
-  const allCycles = [...data.dialogue.icarus, ...data.codeReview.icarus];
+  const allCycles = [...data.dialogue.icarus];
   const last = allCycles.length > 0 ? allCycles[allCycles.length - 1] : null;
 
   const ia = data.agents.icarus;
@@ -226,7 +220,7 @@ function renderStats(data) {
     .filter(s => s !== "not configured").length;
 
   let s = '';
-  s += '<div class="stat"><div class="stat-label">cycles</div><div class="stat-value">' + (t.dialogueCycles + t.codeCycles) + '</div><div class="stat-detail">last: ' + (last ? last.timestamp : "none") + '</div></div>';
+  s += '<div class="stat"><div class="stat-label">cycles</div><div class="stat-value">' + t.dialogueCycles + '</div><div class="stat-detail">last: ' + (last ? last.timestamp : "none") + '</div></div>';
   s += '<div class="stat"><div class="stat-label">messages</div><div class="stat-value">' + t.totalMessages + '</div></div>';
   s += '<div class="stat"><div class="stat-label">gateways</div><div class="stat-value">' + gwUp + '/2</div><div class="stat-detail">' + (gwUp === 2 ? "both running" : gwUp === 1 ? "1 stopped" : "both stopped") + '</div></div>';
   s += '<div class="stat"><div class="stat-label">platforms</div><div class="stat-value">' + platCount + '</div><div class="stat-detail">configured</div></div>';
@@ -267,7 +261,7 @@ function renderGuide() {
     + '<p>The setup wizard handles hermes installation, template selection, platform configuration, and runs a test cycle.</p>'
 
     + '<h2>run a dialogue cycle</h2>'
-    + '<pre># creative / philosophical dialogue\\nbash dialogue.sh\\n\\n# code review (pass a task)\\nbash templates/code-review/dialogue.sh "write a rate limiter"\\n\\n# research\\nbash templates/research-validation/dialogue.sh "effect of sleep on memory"\\n\\n# trading\\nbash templates/trading-strategy/dialogue.sh "BTC at 65k, ETH ratio low"</pre>'
+    + '<pre>bash dialogue.sh</pre>'
 
     + '<h2>manage gateways</h2>'
     + '<pre># start both\\nHERMES_HOME=~/.hermes-icarus hermes gateway run &amp;\\nHERMES_HOME=~/.hermes-daedalus hermes gateway run &amp;\\n\\n# stop both\\npkill -f "hermes gateway run"\\n\\n# check status\\nps aux | grep "hermes gateway"</pre>'
@@ -279,7 +273,7 @@ function renderGuide() {
     + '<h2>swap the SOUL files</h2>'
     + '<p>Agents are defined by their SOUL files. Change what the agents do by editing:</p>'
     + '<pre>~/.hermes-icarus/SOUL.md\\n~/.hermes-daedalus/SOUL.md</pre>'
-    + '<p>Or pick a template during <code>bash setup.sh</code>: code review, research, trading, creative, or write your own.</p>'
+    + '<p>Edit SOUL.md files to change agent behavior. Add agents with <code>bash add-agent.sh</code>.</p>'
 
     + '<h2>templates</h2>'
     + '<div class="steps">'
@@ -311,40 +305,6 @@ function renderDialogueCycle(c, agent) {
   if (c.response) f += '<div class="cycle-field"><div class="field-label">response</div><div class="field-body">' + esc(c.response) + '</div></div>';
   if (c.challenge) f += '<div class="cycle-field"><div class="field-label">challenge</div><div class="field-body">' + esc(c.challenge) + '</div></div>';
   return '<div class="cycle ' + cls + '"><div class="cycle-header"><span class="cycle-num">CYCLE ' + c.cycle + '</span><span class="cycle-ts">' + (c.timestamp || "") + '</span></div>' + f + '</div>';
-}
-
-function renderCodeCycle(c, agent) {
-  const cls = agent === "icarus" ? "agent-a" : "agent-b";
-  let body = "";
-  if (c.code) {
-    for (const block of c.code) {
-      const clean = block.replace(/^```\\w*\\n?/, "").replace(/\\n?```$/, "");
-      body += '<div class="code-block">' + esc(clean) + '</div>';
-    }
-  }
-  if (c.reviews) {
-    for (const r of c.reviews) {
-      const sev = r.match(/^(MUST FIX|SHOULD FIX|NIT)/i);
-      const sc = sev ? "severity-" + sev[1].split(" ")[0].toLowerCase() : "";
-      const sl = sev ? sev[1] : "";
-      body += '<div class="cycle-field"><span class="severity ' + sc + '">' + sl + '</span><span class="field-body">' + esc(r.replace(/^(MUST FIX|SHOULD FIX|NIT)[:\\s]*/i, "").trim()) + '</span></div>';
-    }
-  }
-  if (!c.code && !c.reviews) {
-    const raw = c.raw.replace(/## Cycle \\d+/, "").replace(/\\d{4}-\\d{2}-\\d{2}.*UTC/, "").trim();
-    if (raw.includes("```")) {
-      const blocks = raw.match(/```[\\s\\S]*?```/g) || [];
-      const text = raw.replace(/```[\\s\\S]*?```/g, "").trim();
-      if (text) body += '<div class="field-body">' + esc(text) + '</div>';
-      for (const block of blocks) {
-        const clean = block.replace(/^```\\w*\\n?/, "").replace(/\\n?```$/, "");
-        body += '<div class="code-block">' + esc(clean) + '</div>';
-      }
-    } else {
-      body += '<div class="field-body">' + esc(raw) + '</div>';
-    }
-  }
-  return '<div class="cycle ' + cls + '"><div class="cycle-header"><span class="cycle-num">CYCLE ' + c.cycle + '</span><span class="cycle-ts">' + (c.timestamp || "") + '</span></div>' + body + '</div>';
 }
 
 function renderPanel(cycles, container, agent, renderFn) {
@@ -412,8 +372,6 @@ function render(data) {
   renderStats(data);
   renderPanel(data.dialogue.icarus, $("#icarus-dialogue"), "icarus", renderDialogueCycle);
   renderPanel(data.dialogue.daedalus, $("#daedalus-dialogue"), "daedalus", renderDialogueCycle);
-  renderPanel(data.codeReview.icarus, $("#icarus-code"), "icarus", renderCodeCycle);
-  renderPanel(data.codeReview.daedalus, $("#daedalus-code"), "daedalus", renderCodeCycle);
   renderPlatforms(data);
   renderMemory(data);
   renderWorlds(data);

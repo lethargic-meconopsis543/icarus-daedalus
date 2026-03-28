@@ -2,6 +2,7 @@
 # test.sh -- test fabric-adapter, curator, and dialogue integration
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PASS=0
 FAIL=0
 TEST_DIR=$(mktemp -d)
@@ -13,7 +14,7 @@ fail() { FAIL=$((FAIL + 1)); echo "  FAIL: $1"; }
 echo "fabric-adapter"
 echo ""
 
-FABRIC_DIR="$TEST_DIR/fabric" source fabric-adapter.sh
+FABRIC_DIR="$TEST_DIR/fabric" source "$SCRIPT_DIR/fabric-adapter.sh"
 
 # write
 fp=$(FABRIC_DIR="$TEST_DIR/fabric" fabric_write "test-agent" "cli" "task" "built a websocket broker" "hot" "other:1" "websocket, node" "ws broker" "1")
@@ -49,7 +50,7 @@ echo "curator"
 echo ""
 
 # curator tiering
-FABRIC_DIR="$TEST_DIR/fabric" python3 curator.py --once 2>/dev/null
+FABRIC_DIR="$TEST_DIR/fabric" python3 "$SCRIPT_DIR/curator.py" --once 2>/dev/null
 [ -f "$TEST_DIR/fabric/index.json" ] && pass "curator builds index.json" || fail "curator builds index.json"
 python3 -c "
 import json
@@ -64,11 +65,11 @@ echo "dialogue integration"
 echo ""
 
 # check dialogue.sh sources fabric-adapter
-grep -q "source.*fabric-adapter.sh" dialogue.sh && pass "dialogue.sh sources fabric-adapter" || fail "dialogue.sh sources fabric-adapter"
-grep -q "fabric_write" dialogue.sh && pass "dialogue.sh calls fabric_write" || fail "dialogue.sh calls fabric_write"
+grep -q "source.*fabric-adapter.sh" "$SCRIPT_DIR/dialogue.sh" && pass "dialogue.sh sources fabric-adapter" || fail "dialogue.sh sources fabric-adapter"
+grep -q "fabric_write" "$SCRIPT_DIR/dialogue.sh" && pass "dialogue.sh calls fabric_write" || fail "dialogue.sh calls fabric_write"
 
 # check compact.sh is sourced
-grep -q "source.*compact.sh" dialogue.sh && pass "dialogue.sh sources compact.sh" || fail "dialogue.sh sources compact.sh"
+grep -q "source.*compact.sh" "$SCRIPT_DIR/dialogue.sh" && pass "dialogue.sh sources compact.sh" || fail "dialogue.sh sources compact.sh"
 
 echo ""
 echo "────────────────────────"

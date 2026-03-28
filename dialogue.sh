@@ -14,11 +14,12 @@ TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M UTC')
 
 [ -f "$AGENTS_FILE" ] || { echo "error: agents.yml not found" >&2; exit 1; }
 
-# ── Parse agents.yml ───────────────────────────────────
-# Simple YAML parser: extracts name, role, home for each agent
-parse_agents() {
-    python3 -c "
-import sys
+# ── Parse agents.yml into temp file ────────────────────
+AGENT_TMP=$(mktemp)
+trap "rm -f $AGENT_TMP" EXIT
+
+python3 -c "
+import sys, os
 lines = open(sys.argv[1]).readlines()
 agents = []
 current = {}
@@ -35,17 +36,16 @@ for line in lines:
 if current:
     agents.append(current)
 for a in agents:
-    home = a.get('home', '~/.hermes-' + a['name']).replace('~', '$HOME')
+    home = a.get('home', '~/.hermes-' + a['name']).replace('~', os.environ['HOME'])
     print(a['name'] + '|' + a.get('role', '') + '|' + home)
-" "$AGENTS_FILE"
-}
+" "$AGENTS_FILE" > "$AGENT_TMP"
 
-AGENT_LIST=$(parse_agents)
-AGENT_COUNT=$(echo "$AGENT_LIST" | wc -l | tr -d ' ')
+AGENT_COUNT=$(wc -l < "$AGENT_TMP" | tr -d ' ')
+[ "$AGENT_COUNT" -eq 0 ] && { echo "error: no agents in agents.yml" >&2; exit 1; }
 
 echo "[$TIMESTAMP] agents: $AGENT_COUNT"
 
-# ── Load env from first agent (for API key + platform tokens) ──
+# ── Load env from first agent ──────────────────────────
 source_env() {
     local f="$1"
     [ -f "$f" ] && while IFS= read -r line; do
@@ -56,8 +56,7 @@ source_env() {
     done < "$f"
 }
 
-FIRST_HOME=$(echo "$AGENT_LIST" | head -1 | cut -d'|' -f3)
-FIRST_HOME=$(eval echo "$FIRST_HOME")
+FIRST_HOME=$(head -1 "$AGENT_TMP" | cut -d'|' -f3)
 source_env "$FIRST_HOME/.env"
 
 [ -z "${ANTHROPIC_API_KEY:-}" ] && { echo "error: ANTHROPIC_API_KEY not set in $FIRST_HOME/.env" >&2; exit 1; }
@@ -68,7 +67,7 @@ TELEGRAM_GROUP_ID="${TELEGRAM_HOME_CHANNEL:-}"
 source "$SCRIPT_DIR/fabric-adapter.sh"
 
 # ── Determine cycle number ─────────────────────────────
-FIRST_NAME=$(echo "$AGENT_LIST" | head -1 | cut -d'|' -f1)
+FIRST_NAME=$(head -1 "$AGENT_TMP" | cut -d'|' -f1)
 FIRST_LOG="$SCRIPT_DIR/${FIRST_NAME}-log.md"
 CYCLE=$(grep -c '## Cycle' "$FIRST_LOG" 2>/dev/null || true)
 CYCLE=$(( ${CYCLE:-0} + 1 ))
@@ -76,8 +75,7 @@ CYCLE=$(( ${CYCLE:-0} + 1 ))
 # ── Compaction ─────────────────────────────────────────
 if [ -f "$SCRIPT_DIR/compact.sh" ]; then
     source "$SCRIPT_DIR/compact.sh"
-    # Compact first two agents' logs if they exist
-    SECOND_NAME=$(echo "$AGENT_LIST" | sed -n '2p' | cut -d'|' -f1)
+    SECOND_NAME=$(sed -n '2p' "$AGENT_TMP" | cut -d'|' -f1)
     if [ -n "$SECOND_NAME" ]; then
         SECOND_LOG="$SCRIPT_DIR/${SECOND_NAME}-log.md"
         compact_if_needed "$FIRST_LOG" "$SECOND_LOG" "$CYCLE" "$FIRST_NAME" "$SECOND_NAME"
@@ -148,65 +146,47 @@ append_memory() {
 }
 
 # ── Build shared context ───────────────────────────────
-# Collect recent history from all agents
 ALL_HISTORY=""
-echo "$AGENT_LIST" | while IFS='|' read -r name role home; do
-    home=$(eval echo "$home")
-    local_log="$SCRIPT_DIR/${name}-log.md"
-    if [ -f "$local_log" ]; then
+while IFS='|' read -r name role home; do
+    alog="$SCRIPT_DIR/${name}-log.md"
+    if [ -f "$alog" ]; then
         ALL_HISTORY="${ALL_HISTORY}
 --- ${name} recent ---
-$(tail -80 "$local_log" 2>/dev/null)
+$(tail -60 "$alog" 2>/dev/null)
 "
     fi
-done
-
-# Read all history into variable (subshell workaround)
-ALL_HISTORY=""
-for entry in $(echo "$AGENT_LIST" | tr '\n' ';'); do
-    name=$(echo "$entry" | cut -d'|' -f1)
-    local_log="$SCRIPT_DIR/${name}-log.md"
-    if [ -f "$local_log" ]; then
-        ALL_HISTORY="${ALL_HISTORY}
---- ${name} recent ---
-$(tail -60 "$local_log" 2>/dev/null)
-"
-    fi
-done
+done < "$AGENT_TMP"
 
 # ── Run each agent ─────────────────────────────────────
-CYCLE_CONTEXT=""  # accumulates what each agent said this cycle
+CYCLE_CONTEXT=""
 AGENT_IDX=0
 
 echo "[$TIMESTAMP] cycle $CYCLE"
 echo ""
 
-echo "$AGENT_LIST" | while IFS='|' read -r name role home; do
-    home=$(eval echo "$home")
-    local_log="$SCRIPT_DIR/${name}-log.md"
+while IFS='|' read -r name role home; do
+    alog="$SCRIPT_DIR/${name}-log.md"
     AGENT_IDX=$((AGENT_IDX + 1))
 
-    # init log if missing
-    [ -f "$local_log" ] || printf "# ${name} log\n\n${role}\n\n" > "$local_log"
+    [ -f "$alog" ] || printf "# ${name} log\n\n${role}\n\n" > "$alog"
 
     echo "${name}> thinking..."
 
-    # Load this agent's telegram token if available
-    local_token=""
+    # Telegram token for this agent
+    tg_token=""
     if [ -f "$home/.env" ]; then
-        local_token=$(grep "^TELEGRAM_BOT_TOKEN=" "$home/.env" 2>/dev/null | head -1 | cut -d'=' -f2-)
+        tg_token=$(grep "^TELEGRAM_BOT_TOKEN=" "$home/.env" 2>/dev/null | head -1 | cut -d'=' -f2-)
     fi
 
-    # Build system prompt from SOUL.md or role
-    local_soul=""
+    # System prompt from SOUL.md or role
+    soul=""
     if [ -f "$home/SOUL.md" ]; then
-        local_soul=$(cat "$home/SOUL.md")
+        soul=$(cat "$home/SOUL.md")
     else
-        local_soul="You are ${name}. ${role}."
+        soul="You are ${name}. ${role}."
     fi
 
-    # Build prompt with full context
-    local system_prompt="${local_soul}
+    system_prompt="${soul}
 
 You are in a multi-agent conversation. Cycle $CYCLE. There are $AGENT_COUNT agents total.
 
@@ -214,7 +194,7 @@ Respond with exactly two lines:
 THOUGHT: [2-4 sentences. Your perspective based on your role. Reference what other agents said if relevant. Be specific.]
 RESPONSE: [One direct statement or question to the group.]"
 
-    local user_prompt="Cycle $CYCLE.
+    user_prompt="Cycle $CYCLE.
 
 Full conversation history:
 $ALL_HISTORY
@@ -225,14 +205,11 @@ ${CYCLE_CONTEXT:-nothing yet, you go first}
 Contribute something new based on your role. Don't repeat what others said."
 
     # Call Claude
-    local raw
-    raw=$(call_claude "$system_prompt" "$user_prompt") || { echo "FATAL: ${name} call failed" >&2; continue; }
+    raw=$(call_claude "$system_prompt" "$user_prompt") || { echo "WARN: ${name} call failed" >&2; continue; }
 
-    local thought response
     thought=$(echo "$raw" | sed -n 's/^[* ]*THOUGHT:[* ]* *//p')
     response=$(echo "$raw" | sed -n 's/^[* ]*RESPONSE:[* ]* *//p')
 
-    # Fallback: use raw if parsing fails
     [ -z "$thought" ] && thought="$raw"
     [ -z "$response" ] && response=""
 
@@ -241,7 +218,7 @@ Contribute something new based on your role. Don't repeat what others said."
     echo ""
 
     # Log
-    cat >> "$local_log" << EOF
+    cat >> "$alog" << EOF
 
 ---
 
@@ -255,8 +232,8 @@ $TIMESTAMP
 EOF
 
     # Post to platforms
-    if [ -n "$local_token" ]; then
-        post_telegram "$local_token" "*${name} -- Cycle $CYCLE*
+    if [ -n "$tg_token" ]; then
+        post_telegram "$tg_token" "*${name} -- Cycle $CYCLE*
 
 $thought
 
@@ -268,12 +245,11 @@ _${response}_"
 $thought"
 
     # Write to fabric
-    local refs=""
-    # Reference all other agents from this cycle
-    for other in $(echo "$AGENT_LIST" | cut -d'|' -f1); do
-        [ "$other" = "$name" ] && continue
-        refs="${refs}${refs:+, }${other}:${CYCLE}"
-    done
+    refs=""
+    while IFS='|' read -r other_name _role _home; do
+        [ "$other_name" = "$name" ] && continue
+        refs="${refs}${refs:+, }${other_name}:${CYCLE}"
+    done < "$AGENT_TMP"
 
     fabric_write "$name" "dialogue" "dialogue" \
         "Thought: $thought
@@ -281,19 +257,17 @@ Response: $response" \
         "hot" "$refs" "dialogue" "" "$CYCLE" > /dev/null
 
     # Write to hermes MEMORY.md
-    local mem_file="$home/memories/MEMORY.md"
     if [ -d "$home/memories" ]; then
-        append_memory "$mem_file" "
+        append_memory "$home/memories/MEMORY.md" "
 [$TIMESTAMP] Cycle $CYCLE
 ${name} said: $thought"
     fi
 
-    # Add to cycle context for next agent
     CYCLE_CONTEXT="${CYCLE_CONTEXT}
 ${name}: $thought"
 
     sleep 1
-done
+done < "$AGENT_TMP"
 
 echo "fabric> written to ~/fabric/"
 echo "cycle $CYCLE complete ($AGENT_COUNT agents)"
