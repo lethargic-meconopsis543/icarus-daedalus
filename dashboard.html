@@ -2,389 +2,334 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Icarus / Daedalus</title>
+<meta name="viewport" content="width=1920">
+<title>icarus</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0a;--card:#111111;--border:#1e1e1e;--text:#e8e8e8;--dim:#6b7280;--dimmer:#3f3f46;
+  --orange:#f97316;--blue:#3b82f6;--green:#22c55e;--red:#ef4444;--yellow:#eab308;
+  --mono:'Share Tech Mono',monospace;--sans:'Inter',system-ui,sans-serif;
+  --tg:#229ED9;--sl:#611f69;--dc:#5865F2;--wa:#25D366;--sg:#3A76F0;--em:#6b7280;--cli:#404040;
+}
+html{font-size:13px}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);width:1920px;height:1080px;overflow:hidden;display:flex;flex-direction:column}
 
-  :root {
-    --bg: #101014;
-    --surface: #18181c;
-    --surface-2: #1e1e24;
-    --border: #2a2a30;
-    --text: #c8c8d0;
-    --text-dim: #6e6e78;
-    --text-bright: #e8e8f0;
-    --accent-a: #c87040;
-    --accent-b: #5080a8;
-    --accent-a-dim: rgba(200,112,64,0.12);
-    --accent-b-dim: rgba(80,128,168,0.12);
-    --green: #48a868;
-    --green-dim: rgba(72,168,104,0.15);
-    --red: #c85050;
-    --red-dim: rgba(200,80,80,0.15);
-    --yellow: #c8a040;
-    --yellow-dim: rgba(200,160,64,0.15);
-    --mono: "SF Mono", "Cascadia Code", "Fira Code", Consolas, monospace;
-    --sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
-  }
+/* ── TOP BAR ── */
+.top{height:52px;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid var(--border);flex-shrink:0}
+.logo{font-family:var(--mono);font-size:18px;color:var(--orange);font-weight:400;letter-spacing:1px}
+.top-right{margin-left:auto;display:flex;gap:24px;font-family:var(--mono);font-size:11px;color:var(--dim)}
+.top-right span{display:flex;align-items:center;gap:6px}
+.dot{width:6px;height:6px;border-radius:3px;display:inline-block}
+.dot-green{background:var(--green)}.dot-red{background:var(--red)}.dot-orange{background:var(--orange)}
 
-  html { font-size: 14px; }
-  body { font-family: var(--sans); background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+/* ── STATS ROW ── */
+.stats{height:76px;display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.stat{flex:1;padding:12px 20px;border-right:1px solid var(--border);display:flex;flex-direction:column;justify-content:center}
+.stat:last-child{border-right:none}
+.stat-val{font-family:var(--mono);font-size:26px;font-weight:400;color:var(--text);font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:8px}
+.stat-label{font-family:var(--mono);font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1.5px;margin-top:2px}
+.mini-bar{display:flex;height:3px;border-radius:1px;overflow:hidden;width:60px}
+.mini-bar span{height:100%}
 
-  header { padding: 24px 32px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: baseline; gap: 16px; }
-  header h1 { font-family: var(--mono); font-size: 16px; font-weight: 500; color: var(--text-bright); letter-spacing: -0.02em; }
-  header .subtitle { font-size: 12px; color: var(--text-dim); font-family: var(--mono); }
-  header .live { font-size: 11px; color: var(--text-dim); font-family: var(--mono); margin-left: auto; }
-  header .live::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--green); margin-right: 6px; vertical-align: middle; }
+/* ── MAIN GRID ── */
+.grid{flex:1;display:grid;grid-template-columns:40% 35% 25%;overflow:hidden}
+.col{border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+.col:last-child{border-right:none}
+.col-header{font-family:var(--mono);font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:1.5px;padding:12px 16px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--card)}
 
-  .stats { display: flex; gap: 1px; background: var(--border); border-bottom: 1px solid var(--border); }
-  .stat { flex: 1; background: var(--surface); padding: 16px 24px; }
-  .stat-label { font-size: 11px; font-family: var(--mono); color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
-  .stat-value { font-family: var(--mono); font-size: 22px; font-weight: 600; color: var(--text-bright); }
-  .stat-detail { font-size: 11px; color: var(--text-dim); font-family: var(--mono); margin-top: 2px; }
+/* ── AGENT ROWS ── */
+.agent-row{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border)}
+.agent-dot{width:8px;height:8px;border-radius:4px;flex-shrink:0}
+.agent-info{flex:1;min-width:0}
+.agent-name{font-family:var(--mono);font-size:12px;font-weight:400;color:var(--text)}
+.agent-role{font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.agent-meta{font-family:var(--mono);font-size:10px;color:var(--dimmer);text-align:right;flex-shrink:0}
+.badge{display:inline-block;font-family:var(--mono);font-size:9px;padding:1px 6px;border-radius:3px;font-weight:500;letter-spacing:0.3px}
 
-  .tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--surface); }
-  .tab { padding: 10px 20px; font-family: var(--mono); font-size: 12px; color: var(--text-dim); cursor: pointer; border-bottom: 2px solid transparent; transition: color 0.15s, border-color 0.15s; }
-  .tab:hover { color: var(--text); }
-  .tab.active { color: var(--text-bright); border-bottom-color: var(--text-bright); }
+/* ── FEED ── */
+.feed-item{padding:10px 16px;border-bottom:1px solid var(--border)}
+.feed-head{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.feed-agent{font-family:var(--mono);font-size:11px;font-weight:500}
+.feed-cycle{font-family:var(--mono);font-size:10px;color:var(--dimmer)}
+.feed-ts{font-family:var(--mono);font-size:10px;color:var(--dimmer);margin-left:auto}
+.feed-body{font-size:12px;color:#a0a0a8;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 
-  .panels { display: none; }
-  .panels.active { display: flex; min-height: calc(100vh - 180px); }
-  .panel-single.active { display: block; min-height: calc(100vh - 180px); overflow-y: auto; }
+/* ── MEMORY ENTRIES ── */
+.mem-card{padding:8px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:8px}
+.mem-badges{display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;width:160px}
+.mem-body{flex:1;font-size:11px;color:var(--dim);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-width:0}
+.mem-ts{font-family:var(--mono);font-size:10px;color:var(--dimmer);flex-shrink:0;width:50px;text-align:right}
 
-  .panel { flex: 1; overflow-y: auto; max-height: calc(100vh - 180px); }
-  .panel + .panel { border-left: 1px solid var(--border); }
+/* ── TIER BARS ── */
+.tier-row{display:flex;align-items:center;gap:8px;padding:6px 16px}
+.tier-label{font-family:var(--mono);font-size:10px;width:40px;color:var(--dim)}
+.tier-bar{flex:1;height:6px;background:var(--border);border-radius:2px;overflow:hidden}
+.tier-fill{height:100%;border-radius:2px}
+.tier-count{font-family:var(--mono);font-size:10px;width:30px;text-align:right;color:var(--dim);font-variant-numeric:tabular-nums}
 
-  .panel-header { position: sticky; top: 0; background: var(--surface); padding: 12px 20px; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 12px; font-weight: 500; z-index: 1; }
-  .panel-header.agent-a { color: var(--accent-a); }
-  .panel-header.agent-b { color: var(--accent-b); }
+/* ── CHART ── */
+.chart-wrap{padding:12px 16px;height:120px;flex-shrink:0}
+canvas{width:100%;height:100%}
 
-  .cycle { padding: 16px 20px; border-bottom: 1px solid var(--border); }
-  .cycle:last-child { border-bottom: none; }
-  .cycle-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-  .cycle-num { font-family: var(--mono); font-size: 11px; color: var(--text-dim); font-weight: 600; letter-spacing: 0.04em; }
-  .cycle-ts { font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
+/* ── HEALTH ── */
+.health-row{display:flex;align-items:center;gap:8px;padding:6px 16px;border-bottom:1px solid var(--border)}
+.health-plat{font-family:var(--mono);font-size:11px;flex:1}
+.health-state{font-family:var(--mono);font-size:10px}
 
-  .cycle-field { margin-bottom: 8px; }
-  .cycle-field:last-child { margin-bottom: 0; }
-  .field-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
-  .agent-a .field-label { color: var(--accent-a); }
-  .agent-b .field-label { color: var(--accent-b); }
-  .field-body { color: var(--text); line-height: 1.65; }
+/* ── COMPACTION ── */
+.compact-item{padding:6px 16px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:10px;color:var(--dim)}
+.compact-ts{color:var(--dimmer)}
 
-  .code-block { background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 12px 14px; font-family: var(--mono); font-size: 12px; line-height: 1.5; overflow-x: auto; white-space: pre; color: var(--text); margin: 6px 0; }
+/* ── ACTIONS ── */
+.actions{display:flex;gap:6px;padding:10px 16px;flex-shrink:0;border-top:1px solid var(--border);margin-top:auto}
+.btn{font-family:var(--mono);font-size:10px;padding:6px 12px;background:var(--card);border:1px solid var(--border);color:var(--dim);border-radius:3px;cursor:pointer;text-transform:uppercase;letter-spacing:0.5px}
+.btn:hover{color:var(--text);border-color:var(--dimmer)}
 
-  .severity { display: inline-block; font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.04em; padding: 2px 6px; border-radius: 3px; margin-right: 6px; }
-  .severity-must { background: var(--red-dim); color: var(--red); }
-  .severity-should { background: var(--yellow-dim); color: var(--yellow); }
-  .severity-nit { background: rgba(100,100,120,0.15); color: #808090; }
+.empty{font-family:var(--mono);font-size:10px;color:var(--dimmer);padding:16px;text-align:center}
 
-  .memory-content { padding: 20px; font-family: var(--mono); font-size: 12px; line-height: 1.6; white-space: pre-wrap; color: var(--text); max-width: 900px; }
-  .memory-bar { margin: 20px; max-width: 400px; }
-  .memory-bar-track { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
-  .memory-bar-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
-  .memory-bar-fill.a { background: var(--accent-a); }
-  .memory-bar-fill.b { background: var(--accent-b); }
-  .memory-bar-label { font-family: var(--mono); font-size: 11px; color: var(--text-dim); margin-bottom: 6px; display: flex; justify-content: space-between; }
-
-  .world-link { display: block; padding: 12px 20px; border-bottom: 1px solid var(--border); color: var(--accent-b); text-decoration: none; font-family: var(--mono); font-size: 13px; transition: background 0.1s; }
-  .world-link:hover { background: var(--accent-b-dim); }
-
-  .empty-state { padding: 40px 20px; text-align: center; color: var(--text-dim); font-family: var(--mono); font-size: 12px; }
-
-  /* ── Platform / Agent cards ──────────── */
-  .agent-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); }
-  .agent-card { background: var(--surface); padding: 24px; }
-  .agent-card-name { font-family: var(--mono); font-size: 14px; font-weight: 600; margin-bottom: 16px; }
-  .agent-card-name.a { color: var(--accent-a); }
-  .agent-card-name.b { color: var(--accent-b); }
-
-  .agent-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
-  .agent-row:last-child { border-bottom: none; }
-  .agent-row-label { font-family: var(--mono); font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
-  .agent-row-value { font-family: var(--mono); font-size: 12px; color: var(--text); }
-
-  .badge { display: inline-block; font-family: var(--mono); font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 3px; letter-spacing: 0.03em; }
-  .badge-green { background: var(--green-dim); color: var(--green); }
-  .badge-red { background: var(--red-dim); color: var(--red); }
-  .badge-yellow { background: var(--yellow-dim); color: var(--yellow); }
-  .badge-dim { background: rgba(100,100,120,0.12); color: var(--text-dim); }
-
-  .soul-preview { font-family: var(--mono); font-size: 11px; color: var(--text-dim); line-height: 1.5; margin-top: 12px; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; white-space: pre-wrap; word-break: break-word; }
-
-  /* ── Guide section ───────────────────── */
-  .guide { padding: 24px 32px; max-width: 800px; }
-  .guide h2 { font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--text-bright); margin: 24px 0 12px; }
-  .guide h2:first-child { margin-top: 0; }
-  .guide p { color: var(--text); line-height: 1.7; margin-bottom: 10px; }
-  .guide code { font-family: var(--mono); font-size: 12px; background: var(--surface-2); padding: 2px 6px; border-radius: 3px; color: var(--text-bright); }
-  .guide pre { background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 14px; font-family: var(--mono); font-size: 12px; line-height: 1.5; overflow-x: auto; color: var(--text); margin: 8px 0 16px; }
-  .guide .step { counter-increment: step; padding-left: 28px; position: relative; margin-bottom: 16px; }
-  .guide .step::before { content: counter(step); position: absolute; left: 0; font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--text-dim); background: var(--surface-2); width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; top: 2px; }
-  .guide .steps { counter-reset: step; }
-
-  @media (max-width: 768px) {
-    .panels.active { flex-direction: column; }
-    .panel + .panel { border-left: none; border-top: 1px solid var(--border); }
-    .panel { max-height: none; }
-    .agent-grid { grid-template-columns: 1fr; }
-    header { padding: 16px; flex-wrap: wrap; }
-    .stat { padding: 12px 16px; }
-  }
+/* platform badge colors */
+.b-telegram{background:rgba(34,158,217,0.15);color:var(--tg)}
+.b-discord{background:rgba(88,101,242,0.15);color:var(--dc)}
+.b-slack,.b-slack-webhook{background:rgba(97,31,105,0.15);color:var(--sl)}
+.b-whatsapp{background:rgba(37,211,102,0.15);color:var(--wa)}
+.b-signal{background:rgba(58,118,240,0.15);color:var(--sg)}
+.b-email{background:rgba(107,114,128,0.15);color:var(--em)}
+.b-cli{background:rgba(64,64,64,0.2);color:#888}
+.b-dialogue{background:rgba(249,115,22,0.12);color:var(--orange)}
+.b-code-session{background:rgba(59,130,246,0.12);color:var(--blue)}
+.b-session{background:rgba(107,114,128,0.12);color:var(--dim)}
+.b-resolution,.b-research,.b-task,.b-compacted{background:rgba(107,114,128,0.12);color:var(--dim)}
+.b-hot{background:rgba(249,115,22,0.15);color:var(--orange)}
+.b-warm{background:rgba(234,179,8,0.15);color:var(--yellow)}
+.b-cold{background:rgba(59,130,246,0.12);color:var(--blue)}
 </style>
 </head>
 <body>
-<header>
-  <h1>Icarus / Daedalus</h1>
-  <span class="subtitle">two agents. persistent memory. every platform.</span>
-  <span class="live" id="live">connected</span>
-</header>
 
-<div class="stats" id="stats"></div>
-<div class="tabs" id="tabs"></div>
-
-<div class="panels active" id="panel-dialogue">
-  <div class="panel" id="icarus-dialogue"></div>
-  <div class="panel" id="daedalus-dialogue"></div>
+<div class="top">
+  <span class="logo">icarus</span>
+  <div class="top-right">
+    <span><span class="dot dot-green" id="live-dot"></span><span id="live-label">connected</span></span>
+    <span id="last-cycle">--</span>
+  </div>
 </div>
 
-<div class="panels panel-single" id="panel-platforms">
-  <div id="platforms-content"></div>
-</div>
+<div class="stats" id="stats-row"></div>
 
-<div class="panels panel-single" id="panel-memory">
-  <div id="memory-content"></div>
-</div>
+<div class="grid">
+  <!-- LEFT: Agents + Feed -->
+  <div class="col">
+    <div class="col-header">agents</div>
+    <div id="agent-list"></div>
+    <div class="col-header">activity feed</div>
+    <div id="feed"></div>
+  </div>
 
-<div class="panels panel-single" id="panel-worlds">
-  <div id="worlds-content"></div>
-</div>
+  <!-- CENTER: Memory -->
+  <div class="col">
+    <div class="col-header">memory timeline</div>
+    <div class="chart-wrap"><canvas id="timeline-chart"></canvas></div>
+    <div class="col-header">recent entries</div>
+    <div id="mem-entries"></div>
+    <div class="col-header">tier breakdown</div>
+    <div id="tier-bars"></div>
+  </div>
 
-<div class="panels panel-single" id="panel-compaction">
-  <div id="compaction-content"></div>
-</div>
-
-<div class="panels panel-single" id="panel-guide">
-  <div id="guide-content"></div>
+  <!-- RIGHT: Health -->
+  <div class="col">
+    <div class="col-header">platform status</div>
+    <div id="health"></div>
+    <div class="col-header">compaction history</div>
+    <div id="compaction"></div>
+    <div class="actions">
+      <button class="btn" onclick="action('cycle')">run cycle</button>
+      <button class="btn" onclick="action('compact')">compact</button>
+    </div>
+  </div>
 </div>
 
 <script>
-const $ = s => document.querySelector(s);
-const $$ = s => document.querySelectorAll(s);
+var D = null;
+var agentColors = {};
+var colorPool = ['#f97316','#3b82f6','#22c55e','#a855f7','#ec4899','#eab308','#14b8a6','#f43f5e'];
 
-function switchTab(panel) {
-  $$(".tab").forEach(t => t.classList.remove("active"));
-  document.querySelector('.tab[data-panel="' + panel + '"]').classList.add("active");
-  $$(".panels").forEach(p => p.classList.remove("active"));
-  document.getElementById("panel-" + panel).classList.add("active");
+function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+function ago(ts) {
+  if (!ts) return '';
+  try {
+    var d = new Date(ts.replace(' UTC',':00Z').replace(' ','T'));
+    var m = Math.floor((Date.now() - d.getTime()) / 60000);
+    if (m < 1) return 'now';
+    if (m < 60) return m + 'm';
+    if (m < 1440) return Math.floor(m/60) + 'h';
+    return Math.floor(m/1440) + 'd';
+  } catch(e) { return ''; }
+}
+function agentColor(name) {
+  if (!agentColors[name]) agentColors[name] = colorPool[Object.keys(agentColors).length % colorPool.length];
+  return agentColors[name];
+}
+function badge(cls, text) { return '<span class="badge b-' + cls + '">' + esc(text) + '</span>'; }
+function kb(bytes) { return (bytes / 1024).toFixed(1) + ' KB'; }
+
+function renderStats(d) {
+  var s = d.stats;
+  var platBadges = s.allPlatforms.map(function(p) { return '<span class="badge b-' + p + '" style="font-size:8px">' + p[0].toUpperCase() + '</span>'; }).join('');
+  document.getElementById('stats-row').innerHTML =
+    '<div class="stat"><div class="stat-val">' + s.activeAgents + '<span class="dot ' + (s.activeAgents > 0 ? 'dot-green' : 'dot-red') + '"></span><span style="font-size:12px;color:var(--dim)">/ ' + s.totalAgents + '</span></div><div class="stat-label">agents</div></div>' +
+    '<div class="stat"><div class="stat-val">' + s.totalCycles + '</div><div class="stat-label">cycles</div></div>' +
+    '<div class="stat"><div class="stat-val">' + s.memoryEntries + ' <div class="mini-bar"><span style="flex:' + s.hot + ';background:var(--orange)"></span><span style="flex:' + Math.max(s.warm,0.1) + ';background:var(--yellow)"></span><span style="flex:' + Math.max(s.cold,0.1) + ';background:var(--blue)"></span></div></div><div class="stat-label">memory entries</div></div>' +
+    '<div class="stat"><div class="stat-val">' + platBadges + '</div><div class="stat-label">platforms</div></div>' +
+    '<div class="stat"><div class="stat-val">' + kb(s.brainSize) + '</div><div class="stat-label">brain size</div></div>' +
+    '<div class="stat"><div class="stat-val">' + (s.totalCycles > 0 ? '3h' : '--') + '</div><div class="stat-label">cycle interval</div></div>';
+  document.getElementById('last-cycle').textContent = 'last cycle: ' + (d.lastCycleTs ? ago(d.lastCycleTs) + ' ago' : '--');
 }
 
-let currentTab = null;
-
-function renderTabs(data) {
-  const tabs = [];
-  if (data.totals.dialogueCycles > 0) tabs.push({ id: "dialogue", label: "dialogue" });
-  tabs.push({ id: "platforms", label: "platforms" });
-  tabs.push({ id: "memory", label: "memory" });
-  if (data.worlds.length > 0) tabs.push({ id: "worlds", label: "worlds" });
-  if (data.compaction) tabs.push({ id: "compaction", label: "compaction" });
-  tabs.push({ id: "guide", label: "guide" });
-
-  if (!currentTab || !tabs.find(t => t.id === currentTab)) currentTab = tabs[0].id;
-
-  $("#tabs").innerHTML = tabs
-    .map(t => '<div class="tab ' + (t.id === currentTab ? "active" : "") + '" data-panel="' + t.id + '">' + t.label + '</div>')
-    .join("");
-
-  $$(".tab").forEach(tab => {
-    tab.addEventListener("click", () => { currentTab = tab.dataset.panel; switchTab(currentTab); });
+function renderAgents(d) {
+  var h = '';
+  d.agents.forEach(function(a) {
+    var c = agentColor(a.name);
+    var platBadge = a.lastPlatform ? badge(a.lastPlatform, a.lastPlatform) : '';
+    h += '<div class="agent-row">' +
+      '<div class="agent-dot" style="background:' + (a.online ? 'var(--green)' : 'var(--dimmer)') + '"></div>' +
+      '<div class="agent-info"><div class="agent-name" style="color:' + c + '">' + esc(a.name) + '</div><div class="agent-role">' + esc(a.role) + '</div></div>' +
+      '<div class="agent-meta">' + platBadge + '<br>' + ago(a.lastActive) + '</div></div>';
   });
-
-  $$(".panels").forEach(p => p.classList.remove("active"));
-  document.getElementById("panel-" + currentTab).classList.add("active");
+  document.getElementById('agent-list').innerHTML = h || '<div class="empty">no agents</div>';
 }
 
-function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
-
-function renderStats(data) {
-  const t = data.totals;
-  const memPct = Math.round((t.memoryBytes / 4400) * 100);
-  const allCycles = [...data.dialogue.icarus];
-  const last = allCycles.length > 0 ? allCycles[allCycles.length - 1] : null;
-
-  const ia = data.agents.icarus;
-  const da = data.agents.daedalus;
-  const gwUp = (ia.gateway === "running" ? 1 : 0) + (da.gateway === "running" ? 1 : 0);
-  const platCount = [ia.platforms.telegram, ia.platforms.slack, da.platforms.telegram, da.platforms.slack]
-    .filter(s => s !== "not configured").length;
-
-  let s = '';
-  s += '<div class="stat"><div class="stat-label">cycles</div><div class="stat-value">' + t.dialogueCycles + '</div><div class="stat-detail">last: ' + (last ? last.timestamp : "none") + '</div></div>';
-  s += '<div class="stat"><div class="stat-label">messages</div><div class="stat-value">' + t.totalMessages + '</div></div>';
-  s += '<div class="stat"><div class="stat-label">gateways</div><div class="stat-value">' + gwUp + '/2</div><div class="stat-detail">' + (gwUp === 2 ? "both running" : gwUp === 1 ? "1 stopped" : "both stopped") + '</div></div>';
-  s += '<div class="stat"><div class="stat-label">platforms</div><div class="stat-value">' + platCount + '</div><div class="stat-detail">configured</div></div>';
-  s += '<div class="stat"><div class="stat-label">memory</div><div class="stat-value">' + memPct + '%</div><div class="stat-detail">' + t.memoryBytes + ' / 4400 bytes</div></div>';
-  $("#stats").innerHTML = s;
+function renderFeed(d) {
+  var h = '';
+  d.feed.forEach(function(f) {
+    var c = agentColor(f.agent);
+    h += '<div class="feed-item"><div class="feed-head"><span class="feed-agent" style="color:' + c + '">' + esc(f.agent) + '</span><span class="feed-cycle">cycle ' + f.cycle + '</span><span class="feed-ts">' + ago(f.timestamp) + '</span></div><div class="feed-body">' + esc(f.thought || f.response) + '</div></div>';
+  });
+  document.getElementById('feed').innerHTML = h || '<div class="empty">no activity</div>';
 }
 
-function badge(state) {
-  if (state === "connected" || state === "running") return '<span class="badge badge-green">' + state + '</span>';
-  if (state === "configured") return '<span class="badge badge-yellow">' + state + '</span>';
-  if (state === "stopped") return '<span class="badge badge-red">' + state + '</span>';
-  return '<span class="badge badge-dim">' + state + '</span>';
+function renderMemEntries(d) {
+  var h = '';
+  d.fabricEntries.slice(0, 12).forEach(function(e) {
+    h += '<div class="mem-card">' +
+      '<div class="mem-badges">' +
+        '<span class="badge b-' + e.tier + '" style="font-size:8px">' + e.tier + '</span>' +
+        badge(e.type, e.type) +
+        badge(e.platform, e.platform) +
+      '</div>' +
+      '<div class="mem-body"><span style="color:' + agentColor(e.agent) + '">' + esc(e.agent) + '</span> ' + esc(e.summary || e.body) + '</div>' +
+      '<div class="mem-ts">' + ago(e.timestamp) + '</div></div>';
+  });
+  document.getElementById('mem-entries').innerHTML = h || '<div class="empty">no entries</div>';
 }
 
-function renderPlatforms(data) {
-  const ia = data.agents.icarus;
-  const da = data.agents.daedalus;
-
-  function card(a, cls) {
-    return '<div class="agent-card">'
-      + '<div class="agent-card-name ' + cls + '">' + a.name + '</div>'
-      + '<div class="agent-row"><span class="agent-row-label">gateway</span>' + badge(a.gateway) + '</div>'
-      + '<div class="agent-row"><span class="agent-row-label">telegram</span>' + badge(a.platforms.telegram) + '</div>'
-      + '<div class="agent-row"><span class="agent-row-label">slack</span>' + badge(a.platforms.slack) + '</div>'
-      + '<div class="agent-row"><span class="agent-row-label">model</span><span class="agent-row-value">' + esc(a.model) + '</span></div>'
-      + '<div class="agent-row"><span class="agent-row-label">memory</span><span class="agent-row-value">' + a.memoryBytes + ' / 2200 bytes</span></div>'
-      + '<div class="soul-preview">' + esc(a.soul) + '</div>'
-      + '</div>';
-  }
-
-  $("#platforms-content").innerHTML = '<div class="agent-grid">' + card(ia, "a") + card(da, "b") + '</div>';
+function renderTiers(d) {
+  var s = d.stats;
+  var total = Math.max(s.hot + s.warm + s.cold, 1);
+  document.getElementById('tier-bars').innerHTML =
+    '<div class="tier-row"><span class="tier-label" style="color:var(--orange)">hot</span><div class="tier-bar"><div class="tier-fill" style="width:' + (s.hot/total*100) + '%;background:var(--orange)"></div></div><span class="tier-count">' + s.hot + '</span></div>' +
+    '<div class="tier-row"><span class="tier-label" style="color:var(--yellow)">warm</span><div class="tier-bar"><div class="tier-fill" style="width:' + (s.warm/total*100) + '%;background:var(--yellow)"></div></div><span class="tier-count">' + s.warm + '</span></div>' +
+    '<div class="tier-row"><span class="tier-label" style="color:var(--blue)">cold</span><div class="tier-bar"><div class="tier-fill" style="width:' + (s.cold/total*100) + '%;background:var(--blue)"></div></div><span class="tier-count">' + s.cold + '</span></div>';
 }
 
-function renderGuide() {
-  $("#guide-content").innerHTML = '<div class="guide">'
-    + '<h2>quick start</h2>'
-    + '<pre>git clone https://github.com/esaradev/icarus-daedalus.git\\ncd icarus-daedalus\\nbash setup.sh</pre>'
-    + '<p>The setup wizard handles hermes installation, template selection, platform configuration, and runs a test cycle.</p>'
-
-    + '<h2>run a dialogue cycle</h2>'
-    + '<pre>bash dialogue.sh</pre>'
-
-    + '<h2>manage gateways</h2>'
-    + '<pre># start both\\nHERMES_HOME=~/.hermes-icarus hermes gateway run &amp;\\nHERMES_HOME=~/.hermes-daedalus hermes gateway run &amp;\\n\\n# stop both\\npkill -f "hermes gateway run"\\n\\n# check status\\nps aux | grep "hermes gateway"</pre>'
-
-    + '<h2>cross-platform memory</h2>'
-    + '<p>Both dialogue scripts write session summaries to <code>~/.hermes-{agent}/memories/MEMORY.md</code>. Hermes injects this into the system prompt at session start. Work done on Slack is recallable on Telegram and vice versa.</p>'
-    + '<p>After writing new memory, restart gateways for agents to pick it up. Memory auto-trims at 2200 chars, rotating out the oldest entries.</p>'
-
-    + '<h2>swap the SOUL files</h2>'
-    + '<p>Agents are defined by their SOUL files. Change what the agents do by editing:</p>'
-    + '<pre>~/.hermes-icarus/SOUL.md\\n~/.hermes-daedalus/SOUL.md</pre>'
-    + '<p>Edit SOUL.md files to change agent behavior. Add agents with <code>bash add-agent.sh</code>.</p>'
-
-    + '<h2>templates</h2>'
-    + '<div class="steps">'
-    + '<div class="step"><p><strong>code-review</strong> -- Icarus writes code, Daedalus reviews with MUST FIX / SHOULD FIX / NIT labels. Pass a file or task description as argument.</p></div>'
-    + '<div class="step"><p><strong>research-validation</strong> -- Explorer finds insights, Validator fact-checks. Pass a research topic as argument.</p></div>'
-    + '<div class="step"><p><strong>trading-strategy</strong> -- Strategist proposes setups, Risk Manager stress-tests. Pass market context as argument.</p></div>'
-    + '<div class="step"><p><strong>creative</strong> -- the original Icarus/Daedalus philosophical dialogue. Runs automatically, no argument needed.</p></div>'
-    + '<div class="step"><p><strong>custom</strong> -- describe your agents during setup and it generates SOUL files for you.</p></div>'
-    + '</div>'
-
-    + '<h2>automate</h2>'
-    + '<pre># run every 3 hours\\ncrontab -e\\n# add: 0 */3 * * * cd ~/icarus-daedalus &amp;&amp; bash dialogue.sh >> cron.log 2>&amp;1</pre>'
-
-    + '<h2>dashboard</h2>'
-    + '<pre>node dashboard.js\\n# open http://localhost:3000</pre>'
-    + '<p>This page. Updates in real time when log files change. Run a dialogue cycle in another terminal and watch it appear.</p>'
-
-    + '<h2>reset sessions</h2>'
-    + '<p>If agents have stale context on Telegram, nuke sessions and restart:</p>'
-    + '<pre>rm -f ~/.hermes-icarus/sessions/* ~/.hermes-icarus/state.db\\nrm -f ~/.hermes-daedalus/sessions/* ~/.hermes-daedalus/state.db\\npkill -f "hermes gateway run"\\nHERMES_HOME=~/.hermes-icarus hermes gateway run &amp;\\nHERMES_HOME=~/.hermes-daedalus hermes gateway run &amp;</pre>'
-    + '</div>';
+function renderHealth(d) {
+  var seen = {};
+  var h = '';
+  d.agents.forEach(function(a) {
+    a.platforms.forEach(function(p) {
+      var key = a.name + '-' + p.name;
+      if (seen[key]) return;
+      seen[key] = true;
+      var isOn = p.state === 'connected';
+      h += '<div class="health-row"><span class="dot ' + (isOn ? 'dot-green' : 'dot-red') + '"></span><span class="health-plat" style="color:' + agentColor(a.name) + '">' + esc(a.name) + '</span>' + badge(p.name, p.name) + '<span class="health-state" style="color:' + (isOn ? 'var(--green)' : 'var(--dimmer)') + '">' + p.state + '</span></div>';
+    });
+  });
+  document.getElementById('health').innerHTML = h || '<div class="empty">no platforms</div>';
 }
 
-function renderDialogueCycle(c, agent) {
-  const cls = agent === "icarus" ? "agent-a" : "agent-b";
-  let f = "";
-  if (c.thought) f += '<div class="cycle-field"><div class="field-label">thought</div><div class="field-body">' + esc(c.thought) + '</div></div>';
-  if (c.question) f += '<div class="cycle-field"><div class="field-label">question</div><div class="field-body">' + esc(c.question) + '</div></div>';
-  if (c.response) f += '<div class="cycle-field"><div class="field-label">response</div><div class="field-body">' + esc(c.response) + '</div></div>';
-  if (c.challenge) f += '<div class="cycle-field"><div class="field-label">challenge</div><div class="field-body">' + esc(c.challenge) + '</div></div>';
-  return '<div class="cycle ' + cls + '"><div class="cycle-header"><span class="cycle-num">CYCLE ' + c.cycle + '</span><span class="cycle-ts">' + (c.timestamp || "") + '</span></div>' + f + '</div>';
+function renderCompaction(d) {
+  var h = '';
+  d.compaction.forEach(function(c) {
+    h += '<div class="compact-item"><span class="compact-ts">' + esc(c.timestamp) + '</span><br>' + c.details.map(esc).join(' ') + '</div>';
+  });
+  document.getElementById('compaction').innerHTML = h || '<div class="empty">no compaction events</div>';
 }
 
-function renderPanel(cycles, container, agent, renderFn) {
-  const cls = agent === "icarus" ? "agent-a" : "agent-b";
-  const reversed = [...cycles].reverse();
-  container.innerHTML = '<div class="panel-header ' + cls + '">' + agent + '</div>'
-    + (reversed.length === 0 ? '<div class="empty-state">no cycles yet</div>' : reversed.map(c => renderFn(c, agent)).join(""));
-}
+function renderTimeline(d) {
+  var canvas = document.getElementById('timeline-chart');
+  var ctx = canvas.getContext('2d');
+  var W = canvas.parentElement.clientWidth;
+  var H = 96;
+  canvas.width = W; canvas.height = H;
+  ctx.clearRect(0, 0, W, H);
 
-function renderMemory(data) {
-  const limit = 2200;
-  const ib = data.memory.icarus.bytes;
-  const db = data.memory.daedalus.bytes;
-  let h = '';
-  h += '<div class="memory-bar"><div class="memory-bar-label"><span>icarus</span><span>' + ib + ' / ' + limit + '</span></div><div class="memory-bar-track"><div class="memory-bar-fill a" style="width:' + Math.min(100, (ib/limit)*100) + '%"></div></div></div>';
-  h += '<div class="memory-bar"><div class="memory-bar-label"><span>daedalus</span><span>' + db + ' / ' + limit + '</span></div><div class="memory-bar-track"><div class="memory-bar-fill b" style="width:' + Math.min(100, (db/limit)*100) + '%"></div></div></div>';
-  h += '<div class="memory-content">' + esc(data.memory.icarus.content || "(empty)") + '</div>';
-  $("#memory-content").innerHTML = h;
-}
-
-function renderWorlds(data) {
-  if (data.worlds.length === 0) { $("#worlds-content").innerHTML = '<div class="empty-state">no worlds generated yet</div>'; return; }
-  $("#worlds-content").innerHTML = data.worlds.map(u => '<a class="world-link" href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(u) + '</a>').join("");
-}
-
-function renderCompaction(data) {
-  if (!data.compaction) {
-    $("#compaction-content").innerHTML = '<div class="empty-state">no compaction events yet</div>';
+  var days = Object.keys(d.timeline).sort();
+  if (days.length < 2) {
+    ctx.fillStyle = '#3f3f46'; ctx.font = '11px "Share Tech Mono"';
+    ctx.fillText('not enough data for timeline', W/2 - 80, H/2);
     return;
   }
-  var entries = data.compaction.split(/^---$/m).filter(function(b) { return b.trim(); });
-  var h = '<div class="guide">';
-  h += '<h2>compaction history</h2>';
-  h += '<p>The memory curator runs before each cycle when logs exceed 150 lines or every 10 cycles. It compresses old entries, archives originals, and restarts gateways.</p>';
-  var events = entries.filter(function(e) { return e.match(/## \d{4}/); });
-  if (events.length === 0) {
-    h += '<div class="empty-state">no compaction events yet</div>';
-  } else {
-    events.reverse();
-    for (var i = 0; i < events.length; i++) {
-      var e = events[i].trim();
-      var ts = (e.match(/## (.+)/)||[])[1] || "";
-      var lines = e.split("\\n").filter(function(l) { return l && !l.startsWith("##"); });
-      h += '<div class="cycle"><div class="cycle-header"><span class="cycle-num">COMPACTION</span><span class="cycle-ts">' + esc(ts) + '</span></div>';
-      for (var j = 0; j < lines.length; j++) {
-        var line = lines[j].trim();
-        if (!line) continue;
-        if (line.match(/dropped/i)) {
-          h += '<div class="cycle-field"><span class="severity severity-must">' + esc(line) + '</span></div>';
-        } else if (line.match(/compressed/i)) {
-          h += '<div class="cycle-field"><span class="severity severity-should">' + esc(line) + '</span></div>';
-        } else {
-          h += '<div class="cycle-field"><span class="field-body">' + esc(line) + '</span></div>';
-        }
-      }
-      h += '</div>';
-    }
+
+  var agents = [...new Set(d.fabricEntries.map(function(e){return e.agent}))];
+  var maxVal = 1;
+  days.forEach(function(day) { agents.forEach(function(a) { maxVal = Math.max(maxVal, d.timeline[day][a] || 0); }); });
+
+  var padL = 30, padR = 10, padT = 10, padB = 20;
+  var gW = W - padL - padR;
+  var gH = H - padT - padB;
+
+  // grid
+  ctx.strokeStyle = '#1e1e1e'; ctx.lineWidth = 0.5;
+  for (var i = 0; i <= 4; i++) {
+    var y = padT + (gH / 4) * i;
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
   }
-  h += '</div>';
-  $("#compaction-content").innerHTML = h;
+
+  // lines per agent
+  agents.forEach(function(agent, ai) {
+    ctx.strokeStyle = agentColor(agent); ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    days.forEach(function(day, di) {
+      var x = padL + (di / (days.length - 1)) * gW;
+      var val = (d.timeline[day] && d.timeline[day][agent]) || 0;
+      var y = padT + gH - (val / maxVal) * gH;
+      if (di === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  });
+
+  // x labels
+  ctx.fillStyle = '#3f3f46'; ctx.font = '9px "Share Tech Mono"';
+  [days[0], days[days.length-1]].forEach(function(day, i) {
+    var x = i === 0 ? padL : W - padR - 40;
+    ctx.fillText(day.slice(5), x, H - 4);
+  });
 }
 
 function render(data) {
-  renderTabs(data);
+  D = data;
   renderStats(data);
-  renderPanel(data.dialogue.icarus, $("#icarus-dialogue"), "icarus", renderDialogueCycle);
-  renderPanel(data.dialogue.daedalus, $("#daedalus-dialogue"), "daedalus", renderDialogueCycle);
-  renderPlatforms(data);
-  renderMemory(data);
-  renderWorlds(data);
+  renderAgents(data);
+  renderFeed(data);
+  renderMemEntries(data);
+  renderTiers(data);
+  renderHealth(data);
   renderCompaction(data);
-  renderGuide();
+  renderTimeline(data);
 }
 
-fetch("/api/stats").then(r => r.json()).then(render);
+function action(name) {
+  fetch('/api/action/' + name, { method: 'POST' }).then(function(r) { return r.json(); }).then(function(d) {
+    console.log(d);
+  });
+}
 
-const sse = new EventSource("/api/stream");
-sse.onmessage = e => render(JSON.parse(e.data));
-sse.onerror = () => { $("#live").textContent = "reconnecting"; $("#live").style.opacity = "0.5"; };
-sse.onopen = () => { $("#live").textContent = "connected"; $("#live").style.opacity = "1"; };
+fetch('/api/data').then(function(r){return r.json()}).then(render);
+var sse = new EventSource('/api/stream');
+sse.onmessage = function(e) { render(JSON.parse(e.data)); };
+sse.onerror = function() { document.getElementById('live-dot').className = 'dot dot-red'; document.getElementById('live-label').textContent = 'reconnecting'; };
+sse.onopen = function() { document.getElementById('live-dot').className = 'dot dot-green'; document.getElementById('live-label').textContent = 'connected'; };
 </script>
 </body>
 </html>
