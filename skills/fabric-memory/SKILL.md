@@ -13,23 +13,35 @@ After completing any task worth remembering:
 
 Do NOT write trivial things (greetings, one-word answers, status checks).
 
-## When to read
+## When to recall (smart retrieval)
 
-At the start of each session, load your recent memories:
+Use smart retrieval to find relevant memories. This ranks entries by keyword match, project, agent, recency, and type -- not just recency.
+
+```bash
+python3 ~/icarus-daedalus/fabric-retrieve.py "billing issue" --max-results 5
+```
+
+This returns the top 5 most relevant entries with relevance scores. Use this instead of fabric_read when you need specific context.
+
+Options:
+- `--max-results N` -- return at most N entries (default 5)
+- `--max-tokens N` -- stay within token budget (default 2000)
+- `--agent NAME` -- boost entries from a specific agent
+- `--project NAME` -- boost entries from a specific project
+
+## When to read (bulk)
+
+For a full dump of recent memories (less precise, more complete):
 ```bash
 source ~/icarus-daedalus/fabric-adapter.sh && fabric_read "" "hot"
 ```
 
-This gives you all hot-tier memories from all agents. Use this context to avoid repeating work, reference past decisions, and maintain continuity.
+## When to search (keyword)
 
-## When to search
-
-When asked about past work, search before saying "I don't know":
+For keyword-based file search:
 ```bash
 source ~/icarus-daedalus/fabric-adapter.sh && fabric_search "query terms"
 ```
-
-This returns file paths. Read the matched files to get the full content.
 
 ## Commands
 

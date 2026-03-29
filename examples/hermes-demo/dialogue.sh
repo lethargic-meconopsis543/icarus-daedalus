@@ -164,14 +164,30 @@ $(tail -60 "$alog" 2>/dev/null)
     fi
 done < "$AGENT_TMP"
 
-# ── Load shared fabric memory ─────────────────────────
+# ── Load shared fabric memory (smart retrieval) ──────
 FABRIC_CONTEXT=""
-FABRIC_ENTRIES=$(fabric_read "" "hot" 2>/dev/null || true)
-if [ -n "$FABRIC_ENTRIES" ]; then
-    FABRIC_CONTEXT="
---- shared fabric memory (recent entries from all agents) ---
-$(echo "$FABRIC_ENTRIES" | head -100)
+if [ -f "$REPO_DIR/fabric-retrieve.py" ]; then
+    # Use last agent's output as retrieval query for relevance
+    QUERY="agent dialogue cycle $CYCLE"
+    FABRIC_CONTEXT=$(python3 "$REPO_DIR/fabric-retrieve.py" "$QUERY" --max-results 5 --max-tokens 1500 2>/dev/null || true)
+    if [ -n "$FABRIC_CONTEXT" ] && [ "$FABRIC_CONTEXT" != "no relevant entries found" ]; then
+        FABRIC_CONTEXT="
+--- relevant fabric memory ---
+$FABRIC_CONTEXT
 "
+    else
+        FABRIC_CONTEXT=""
+    fi
+fi
+# Fallback to basic read
+if [ -z "$FABRIC_CONTEXT" ]; then
+    FABRIC_ENTRIES=$(fabric_read "" "hot" 2>/dev/null || true)
+    if [ -n "$FABRIC_ENTRIES" ]; then
+        FABRIC_CONTEXT="
+--- shared fabric memory ---
+$(echo "$FABRIC_ENTRIES" | head -80)
+"
+    fi
 fi
 
 # ── Run each agent ─────────────────────────────────────

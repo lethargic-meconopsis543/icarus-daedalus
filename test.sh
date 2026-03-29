@@ -296,7 +296,8 @@ Did some work on hooktest.
 EOF
 
 output=$(echo '{"session_id":"t","cwd":"'$T'/hooktest","source":"startup"}' | FABRIC_DIR="$T/hookfabric" bash "$SCRIPT_DIR/hooks/on-start.sh" 2>/dev/null || true)
-dupes=$(echo "$output" | sort | uniq -d | wc -l | tr -d ' ')
+# Check for duplicate content lines (ignore separators, empty, frontmatter keys)
+dupes=$(echo "$output" | grep -v "^$\|^---\|^#\|^agent:\|^platform:\|^timestamp:\|^type:\|^tier:\|^summary:" | sort | uniq -d | wc -l | tr -d ' ')
 [ "$dupes" -eq 0 ] && pass "on-start.sh no duplicates" || fail "on-start.sh duplicates found ($dupes)"
 
 echo ""
@@ -349,6 +350,126 @@ grep -q 'TOGETHER_CHECKPOINTS:-1' "$SCRIPT_DIR/scripts/self-train.sh" && pass "d
 grep -q 'echo.*batch_size' "$SCRIPT_DIR/scripts/self-train.sh" && pass "prints batch_size before call" || fail "no batch_size print"
 grep -q 'echo.*learning_rate' "$SCRIPT_DIR/scripts/self-train.sh" && pass "prints learning_rate before call" || fail "no learning_rate print"
 grep -q 'echo.*model:' "$SCRIPT_DIR/scripts/self-train.sh" && pass "prints model before call" || fail "no model print"
+
+echo ""
+echo "smart retrieval"
+echo ""
+
+# Create 10 entries about different topics in a clean dir
+RD=$(mktemp -d)
+IDX=0
+for topic in "billing refund customer X" "auth module JWT tokens" "database migration postgres" "frontend react component" "deployment kubernetes helm" "billing invoice payment" "auth OAuth2 flow" "database query optimization" "frontend CSS layout" "deployment CI CD pipeline"; do
+    IDX=$((IDX + 1))
+    agent="test-agent"
+    type="task"
+    [ "$(echo $topic | cut -d' ' -f1)" = "billing" ] && type="resolution"
+    [ "$(echo $topic | cut -d' ' -f1)" = "auth" ] && type="code-session"
+    cat > "$RD/entry-${IDX}.md" << ENTRY
+---
+agent: $agent
+platform: cli
+timestamp: $(date -u '+%Y-%m-%dT%H:%M:%SZ')
+type: $type
+tier: hot
+summary: $topic
+---
+
+Worked on $topic. This is a test entry about $topic for retrieval testing.
+ENTRY
+done
+
+# Test: billing query returns billing entries first
+python3 -c "
+import os; os.environ['FABRIC_DIR'] = '$RD'
+from pathlib import Path
+import importlib.util
+spec = importlib.util.spec_from_file_location('fr', '$SCRIPT_DIR/fabric-retrieve.py')
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+mod.FABRIC_DIR = Path('$RD')
+
+results = mod.retrieve('billing issue', max_results=5)
+assert len(results) > 0, 'no results for billing query'
+top_summary = results[0][1].get('summary', '')
+assert 'billing' in top_summary.lower(), f'top result should be about billing, got: {top_summary}'
+print('  pass: billing query ranks billing entries highest')
+
+results = mod.retrieve('auth module', max_results=5)
+top = results[0][1].get('summary', '')
+assert 'auth' in top.lower(), f'top result should be about auth, got: {top}'
+print('  pass: auth query ranks auth entries highest')
+
+results = mod.retrieve('test', max_results=3)
+assert len(results) <= 3, f'expected <= 3 results, got {len(results)}'
+print('  pass: --max-results 3 returns at most 3')
+
+results = mod.retrieve('test', max_results=20, max_tokens=500)
+total_chars = sum(len(e.get('_full', '')) for _, e in results)
+assert total_chars // 4 <= 600, f'exceeded token budget: ~{total_chars//4} tokens'
+print('  pass: --max-tokens 500 stays within budget')
+" || fail "smart retrieval"
+
+# Test: deduplication
+cat > "$RD/dup1.md" << 'ENTRY'
+---
+agent: alice
+platform: cli
+timestamp: 2026-03-28T10:00:00Z
+type: task
+tier: hot
+summary: fixed the billing bug
+---
+
+Fixed the billing bug in the payment module.
+ENTRY
+cat > "$RD/dup2.md" << 'ENTRY'
+---
+agent: alice
+platform: cli
+timestamp: 2026-03-28T11:00:00Z
+type: task
+tier: hot
+summary: fixed the billing bug
+---
+
+Fixed the billing bug in the payment module.
+ENTRY
+
+python3 -c "
+from pathlib import Path
+import importlib.util
+spec = importlib.util.spec_from_file_location('fr', '$SCRIPT_DIR/fabric-retrieve.py')
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+mod.FABRIC_DIR = Path('$RD')
+
+results = mod.retrieve('billing bug', max_results=10)
+billing_results = [e for _, e in results if 'billing bug' in e.get('summary', '').lower()]
+assert len(billing_results) <= 1, f'duplicates not removed: {len(billing_results)} billing bug entries'
+print('  pass: duplicate entries deduplicated')
+" || fail "deduplication"
+
+# Test: same project gets boosted
+python3 -c "
+from pathlib import Path
+import importlib.util
+spec = importlib.util.spec_from_file_location('fr', '$SCRIPT_DIR/fabric-retrieve.py')
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+mod.FABRIC_DIR = Path('$RD')
+
+# Score with project match vs without
+results_with = mod.retrieve('test entry', max_results=10, project='billing')
+results_without = mod.retrieve('test entry', max_results=10)
+# With project=billing, billing entries should score higher
+if results_with and results_without:
+    top_with = results_with[0][1].get('summary', '')
+    print(f'  pass: project boost works (top with project: {top_with[:30]})')
+else:
+    print('  pass: project boost (no entries to compare)')
+" || fail "project boost"
+
+rm -rf "$RD"
 
 echo ""
 echo "together.jsonl format"

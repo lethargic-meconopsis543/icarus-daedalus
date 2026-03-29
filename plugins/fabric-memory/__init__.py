@@ -113,24 +113,43 @@ _session_exchanges = []
 def _on_session_start(session_id="", platform="", **kwargs):
     """Load relevant fabric context at session start.
 
+    Uses smart retrieval if available, falls back to recent entries.
     Returns a string that hermes injects into the ephemeral system prompt.
     """
     global _session_exchanges
     _session_exchanges = []
 
     agent = AGENT_NAME or "agent"
-    entries = _read_recent(limit=8)
 
+    # Try smart retrieval
+    try:
+        retrieve_path = Path(__file__).parent.parent.parent / "fabric-retrieve.py"
+        if retrieve_path.exists():
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("fabric_retrieve", str(retrieve_path))
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            mod.FABRIC_DIR = FABRIC_DIR
+            results = mod.retrieve(agent, max_results=5, max_tokens=1500, agent=agent)
+            if results:
+                context = mod.format_results(results)
+                logger.info("fabric-memory: injected %d relevant entries via retrieval", len(results))
+                return f"[fabric memory] relevant context:\n{context}"
+    except Exception as exc:
+        logger.debug("fabric-memory: retrieval failed, falling back: %s", exc)
+
+    # Fallback: recent hot entries
+    entries = _read_recent(limit=8)
     if not entries:
         return None
 
-    context_lines = [f"[fabric memory] recent activity across all agents:"]
+    context_lines = ["[fabric memory] recent activity across all agents:"]
     for e in entries:
         ts = e["timestamp"][:16] if e["timestamp"] else "?"
         context_lines.append(f"  [{ts}] {e['agent']}: {e['summary']}")
 
     context = "\n".join(context_lines)
-    logger.info("fabric-memory: injected %d entries into session context", len(entries))
+    logger.info("fabric-memory: injected %d entries (fallback)", len(entries))
     return context
 
 
