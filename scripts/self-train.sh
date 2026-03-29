@@ -55,12 +55,16 @@ if [ -z "${TOGETHER_API_KEY:-}" ]; then
 fi
 
 # ── HTTP helper ──
-# Appends HTTP status code as last line. Caller splits body and code.
+# Pass auth via stdin to avoid credential exposure in process list.
+# Appends HTTP status code as last line.
+_auth_header() {
+    echo "Authorization: Bearer $TOGETHER_API_KEY"
+}
 http_post() {
-    curl -s -w '\n%{http_code}' "$@"
+    _auth_header | curl -s -w '\n%{http_code}' -H @- "$@"
 }
 http_get() {
-    curl -s -w '\n%{http_code}' "$@"
+    _auth_header | curl -s -w '\n%{http_code}' -H @- "$@"
 }
 check_http() {
     local response="$1" label="$2"
@@ -97,11 +101,38 @@ if [ "$PAIR_COUNT" -lt "$MIN_PAIRS" ]; then
     exit 1
 fi
 
+# ── Step 2b: Validate JSONL ──
+echo ""
+echo "step 2b: validating JSONL..."
+python3 -c "
+import json, sys
+errors = 0
+with open(sys.argv[1]) as f:
+    for i, line in enumerate(f, 1):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            obj = json.loads(line)
+            if 'messages' not in obj:
+                print(f'  line {i}: missing messages field')
+                errors += 1
+            elif not isinstance(obj['messages'], list) or len(obj['messages']) < 2:
+                print(f'  line {i}: messages must have at least 2 entries')
+                errors += 1
+        except json.JSONDecodeError as e:
+            print(f'  line {i}: invalid JSON: {e}')
+            errors += 1
+if errors:
+    print(f'{errors} validation errors. fix before uploading.')
+    sys.exit(1)
+print(f'  {i} lines validated, all OK')
+" "$OUTPUT_DIR/openai.jsonl" || { echo "error: JSONL validation failed"; exit 1; }
+
 # ── Step 3: Upload ──
 echo ""
-echo "step 2: uploading to Together AI..."
-UPLOAD_RAW=$(http_post -X POST "https://api.together.xyz/files/upload" \
-    -H "Authorization: Bearer $TOGETHER_API_KEY" \
+echo "step 3: uploading to Together AI..."
+UPLOAD_RAW=$(http_post -X POST "https://api.together.xyz/v1/files/upload" \
     -F "purpose=fine-tune" \
     -F "file_name=openai.jsonl" \
     -F "file=@$OUTPUT_DIR/openai.jsonl")
@@ -120,9 +151,8 @@ echo "uploaded: $FILE_ID"
 
 # ── Step 4: Fine-tune ──
 echo ""
-echo "step 3: starting fine-tune..."
+echo "step 4: starting fine-tune..."
 FT_RAW=$(http_post -X POST "https://api.together.xyz/v1/fine-tunes" \
-    -H "Authorization: Bearer $TOGETHER_API_KEY" \
     -H "Content-Type: application/json" \
     -d "{\"training_file\": \"$FILE_ID\", \"model\": \"meta-llama/Meta-Llama-3.1-8B-Instruct-Reference\", \"n_epochs\": 3, \"suffix\": \"icarus-v1\"}")
 
@@ -145,15 +175,14 @@ echo "job ID saved to $JOB_FILE"
 
 # ── Step 5: Poll ──
 echo ""
-echo "step 4: polling status every ${POLL_INTERVAL}s (timeout: ${TIMEOUT}s)..."
+echo "step 5: polling status every ${POLL_INTERVAL}s (timeout: ${TIMEOUT}s)..."
 ELAPSED=0
 
 while [ "$ELAPSED" -lt "$TIMEOUT" ]; do
     sleep "$POLL_INTERVAL"
     ELAPSED=$((ELAPSED + POLL_INTERVAL))
 
-    STATUS_RAW=$(http_get "https://api.together.xyz/v1/fine-tunes/$JOB_ID" \
-        -H "Authorization: Bearer $TOGETHER_API_KEY")
+    STATUS_RAW=$(http_get "https://api.together.xyz/v1/fine-tunes/$JOB_ID")
 
     STATUS_CODE=$(echo "$STATUS_RAW" | tail -1)
     STATUS_BODY=$(echo "$STATUS_RAW" | sed '$d')
