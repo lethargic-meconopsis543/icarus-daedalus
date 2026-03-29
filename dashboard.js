@@ -135,6 +135,7 @@ function getOverview() {
       entriesToday: entries.filter(e => e.timestamp.startsWith(today)).length, hot, warm, cold, brainSize: fabricSize(),
       platforms: [...new Set(agents.flatMap(a => a.platforms.map(p => p.name)))], uptime: Math.floor((Date.now() - START) / 1000) },
     timeline, platDist, typeDist, compaction: compaction.reverse().slice(0, 10), lastCycleTs: feed.length > 0 ? feed[0].timestamp : "",
+    cronTail: safe(path.join(ROOT, "cron.log")).split("\n").filter(l => l.trim()).slice(-10),
   };
 }
 

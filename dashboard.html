@@ -2,468 +2,296 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=1920">
 <title>ICARUS</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--am:#ff8c00;--up:#00ff00;--dn:#ff3333;--bl:#00ccff;--wh:#fff;--bg:#000;--bd:#1a1a1a;--hd:#111;--lb:#555}
-body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--am);font-size:11px;width:1920px;height:1080px;overflow:hidden;display:flex;flex-direction:column}
+html,body{height:100%;overflow:hidden}
+body{font:11px/1.3 'JetBrains Mono',monospace;background:#000;color:#ff8c00}
 
-/* NAV */
-.nav{height:40px;background:var(--bg);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 8px;flex-shrink:0}
-.nav-logo{color:var(--am);font-size:13px;font-weight:700;letter-spacing:1px;white-space:pre;margin-right:16px}
-.nav-tabs{display:flex;gap:0;margin-left:auto}
-.nav-tab{padding:0 12px;height:40px;display:flex;align-items:center;font-size:11px;color:var(--lb);cursor:pointer;border-bottom:2px solid transparent}
-.nav-tab:hover{color:var(--wh)}
-.nav-tab.on{color:var(--am);border-bottom-color:var(--am)}
+/* everything is a grid of bordered cells, edge to edge */
+.root{display:grid;width:100vw;height:100vh;grid-template-rows:24px 18px 1fr 1fr 1fr;grid-template-columns:1fr 1fr 1fr 1fr}
 
-/* TICKER */
-.ticker{height:20px;background:var(--hd);border-bottom:1px solid var(--bd);padding:0 8px;display:flex;align-items:center;font-size:10px;color:var(--lb);flex-shrink:0;overflow:hidden;gap:16px}
-.ticker b{color:var(--am);font-weight:400}
+/* top bar spans all 4 cols */
+.topbar{grid-column:1/-1;background:#0a0a0a;border-bottom:1px solid #1a1a1a;display:flex;align-items:center;padding:0 8px;gap:12px;overflow:hidden}
+.topbar .logo{color:#ff8c00;font-weight:700;font-size:12px;letter-spacing:2px;white-space:nowrap}
+.topbar .sep{color:#222;font-size:10px}
+.topbar .kv{font-size:10px;color:#555;white-space:nowrap}
+.topbar .kv b{color:#ccc;font-weight:400}
+.topbar .live{color:#0f0;font-size:10px;margin-left:auto;white-space:nowrap}
+.topbar .clock{color:#555;font-size:10px}
 
-/* PAGES */
-.page{flex:1;display:none;overflow:hidden}
-.page.on{display:flex;flex-direction:column}
+/* ticker spans all cols */
+.ticker{grid-column:1/-1;background:#050505;border-bottom:1px solid #1a1a1a;display:flex;align-items:center;padding:0 8px;font-size:10px;color:#444;overflow:hidden;gap:12px;white-space:nowrap}
+.ticker em{color:#ff8c00;font-style:normal;font-size:9px}
 
-/* PANELS */
-.P{border:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden;min-width:0;min-height:0;background:var(--bg)}
-.P-h{height:22px;background:var(--hd);border-bottom:1px solid var(--bd);padding:0 8px;display:flex;align-items:center;font-size:10px;color:var(--am);font-weight:700;letter-spacing:.5px;text-transform:uppercase;flex-shrink:0}
-.P-h span{margin-left:auto;color:var(--lb);font-weight:400;text-transform:none}
-.P-b{flex:1;overflow-y:auto;overflow-x:hidden;padding:2px}
-.P-b::-webkit-scrollbar{width:2px}
-.P-b::-webkit-scrollbar-thumb{background:#333}
+/* panels */
+.p{border:1px solid #1a1a1a;display:flex;flex-direction:column;overflow:hidden;min-width:0;min-height:0}
+.p-h{height:18px;background:#0d0d0d;border-bottom:1px solid #1a1a1a;padding:0 6px;display:flex;align-items:center;font-size:9px;color:#ff8c00;font-weight:700;letter-spacing:.5px;text-transform:uppercase;flex-shrink:0;white-space:nowrap}
+.p-h span{margin-left:auto;color:#444;font-weight:400;text-transform:none;font-size:9px}
+.p-b{flex:1;overflow-y:auto;overflow-x:hidden}
+.p-b::-webkit-scrollbar{width:0}
 
+/* tables */
 table{width:100%;border-collapse:collapse}
-th{text-align:left;padding:2px 6px;color:#888;font-weight:400;font-size:10px;border-bottom:1px solid var(--bd);position:sticky;top:0;background:var(--hd)}
-td{padding:2px 6px;border-bottom:1px solid #0d0d0d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;max-width:200px}
-tr:hover td{background:#0a0a0a}
+th{text-align:left;padding:1px 4px;color:#444;font-weight:400;font-size:9px;border-bottom:1px solid #151515;position:sticky;top:0;background:#0d0d0d}
+td{padding:1px 4px;border-bottom:1px solid #0a0a0a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
 
-.dot{display:inline-block;width:6px;height:6px;margin-right:4px;vertical-align:middle}
-.on{background:var(--up)}.off{background:var(--dn)}
-.span2{grid-column:span 2}
-.feed-line{padding:2px 6px;border-bottom:1px solid #0d0d0d;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kv{display:flex;justify-content:space-between;padding:1px 6px;font-size:11px}
-.kv .k{color:#888}.kv .v{color:var(--wh)}
-.btn{font-family:inherit;font-size:11px;padding:4px 8px;background:var(--bg);border:1px solid var(--bd);color:var(--am);cursor:pointer;border-radius:0}
-.btn:hover{border-color:var(--am)}
+/* utility */
+.g{color:#0f0}.r{color:#f33}.w{color:#fff}.d{color:#555}.a{color:#ff8c00}
+.dot{display:inline-block;width:5px;height:5px;margin-right:3px;vertical-align:middle}
+.dot.on{background:#0f0}.dot.off{background:#f33}
+.kv{display:flex;justify-content:space-between;padding:1px 4px}
+.kv .k{color:#555}.kv .v{color:#fff}
+.feed{padding:1px 4px;border-bottom:1px solid #0a0a0a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cmd{padding:4px;display:flex;flex-wrap:wrap;gap:3px}
+.btn{font:inherit;font-size:10px;padding:2px 6px;background:#000;border:1px solid #1a1a1a;color:#ff8c00;cursor:pointer;border-radius:0}
+.btn:hover{border-color:#ff8c00}
 
-/* OVERVIEW GRID */
-.ov-grid{flex:1;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;grid-template-rows:1fr 1fr 1fr;overflow:hidden}
+/* chart panels need no scroll */
+.p-chart{padding:3px 6px}
 
-/* AGENT DETAIL */
-.ag-detail{flex:1;display:grid;grid-template-columns:200px 1fr;overflow:hidden}
-.ag-list{border-right:1px solid var(--bd);overflow-y:auto}
-.ag-list-item{padding:6px 8px;border-bottom:1px solid #0d0d0d;cursor:pointer;font-size:11px}
-.ag-list-item:hover{background:#0a0a0a}
-.ag-list-item.sel{background:var(--hd);color:var(--am)}
-.ag-main{overflow-y:auto;display:flex;flex-direction:column}
-.ag-banner{padding:8px;font-size:11px;border-bottom:1px solid var(--bd);white-space:pre;color:var(--am)}
-.ag-cols{display:grid;grid-template-columns:1fr 1fr;flex:1;overflow:hidden}
-.ag-col{overflow-y:auto;border-right:1px solid var(--bd);padding:2px}
-.ag-col:last-child{border-right:none}
-
-/* MEMORY PAGE */
-.mem-page{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.mem-bar{height:32px;border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 8px;gap:8px;flex-shrink:0}
-.mem-bar input,.mem-bar select{font-family:inherit;font-size:11px;background:var(--bg);border:1px solid var(--bd);color:var(--wh);padding:2px 6px;outline:none}
-.mem-bar input{flex:1}
-.mem-bar select{color:var(--am)}
-.mem-body{flex:1;display:grid;grid-template-columns:1fr 300px;overflow:hidden}
-.mem-table{overflow-y:auto}.mem-side{border-left:1px solid var(--bd);overflow-y:auto;padding:4px}
-
-/* PLATFORM PAGE */
-.plat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--bd);padding:1px}
-.plat-card{background:var(--bg);padding:8px}
-.plat-name{font-size:13px;font-weight:700;margin-bottom:4px}
-
-/* CYCLES PAGE */
-.cyc-page{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.cyc-chart{height:160px;border-bottom:1px solid var(--bd);padding:4px 8px;flex-shrink:0}
-.cyc-list{flex:1;overflow-y:auto}
-.cyc-item{border-bottom:1px solid var(--bd);padding:4px 8px}
-.cyc-hd{display:flex;gap:8px;cursor:pointer}
-.cyc-body{display:none;padding:4px 0}
-.cyc-item.open .cyc-body{display:block}
-
-/* FABRIC PAGE */
-.fab-page{flex:1;display:grid;grid-template-columns:1fr 400px;overflow:hidden}
-.fab-files{overflow-y:auto;padding:4px 8px;font-size:12px}
-.fab-file{padding:2px 0;cursor:pointer;color:var(--lb)}
-.fab-file:hover{color:var(--wh)}
-.fab-file.dir{color:var(--bl)}
-.fab-preview{border-left:1px solid var(--bd);overflow-y:auto;padding:4px 8px;font-size:11px;color:var(--lb);white-space:pre-wrap;word-break:break-all}
-
-/* SYSTEM PAGE */
-.sys-page{flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr;overflow:hidden}
+/* span helpers */
+.c2{grid-column:span 2}
 </style>
 </head>
 <body>
+<div class="root">
 
-<div class="nav">
-  <span class="nav-logo">▓▓ ICARUS ▓▓</span>
-  <div class="nav-tabs" id="navTabs"></div>
+<!-- ROW 0: TOPBAR -->
+<div class="topbar">
+  <span class="logo">▓▓ ICARUS ▓▓</span>
+  <span class="sep">│</span>
+  <span class="kv">AGENTS <b id="sAg"></b></span>
+  <span class="sep">│</span>
+  <span class="kv">CYCLES <b id="sCy"></b></span>
+  <span class="sep">│</span>
+  <span class="kv">ENTRIES <b id="sEn"></b></span>
+  <span class="sep">│</span>
+  <span class="kv">HOT <b class="a" id="sHot"></b></span>
+  <span class="kv">WRM <b style="color:#a08520" id="sWrm"></b></span>
+  <span class="kv">CLD <b style="color:#4080c0" id="sCld"></b></span>
+  <span class="sep">│</span>
+  <span class="kv">BRAIN <b id="sBr"></b></span>
+  <span class="sep">│</span>
+  <span class="kv">UP <b id="sUp"></b></span>
+  <span class="live" id="sLive">● LIVE</span>
+  <span class="clock" id="sClock"></span>
 </div>
+
+<!-- ROW 0: TICKER -->
 <div class="ticker" id="ticker"></div>
 
-<!-- PAGE: OVERVIEW -->
-<div class="page on" id="pg-overview">
-  <div class="ov-grid">
-    <div class="P"><div class="P-h">Agent Status <span id="ovNag"></span></div><div class="P-b"><table><thead><tr><th></th><th>Agent</th><th>Role</th><th>Plat</th><th>Status</th><th>Last</th></tr></thead><tbody id="ovAg"></tbody></table></div></div>
-    <div class="P"><div class="P-h">Memory Feed <span id="ovNfd"></span></div><div class="P-b" id="ovFd"></div></div>
-    <div class="P"><div class="P-h">Cycle Output <span id="ovNcy"></span></div><div class="P-b" id="ovCy"></div></div>
-    <div class="P"><div class="P-h">System</div><div class="P-b" id="ovSys"></div></div>
-    <div class="P span2"><div class="P-h">Memory Timeline <span>14 days</span></div><div class="P-b" style="padding:4px 8px"><canvas id="chTl"></canvas></div></div>
-    <div class="P"><div class="P-h">Tier Distribution</div><div class="P-b" style="padding:4px 8px"><canvas id="chTr" style="max-height:100px"></canvas><div id="ovTrSt" style="margin-top:4px"></div></div></div>
-    <div class="P"><div class="P-h">Platform Traffic</div><div class="P-b" style="padding:4px 8px"><canvas id="chPl" style="max-height:120px"></canvas></div></div>
-    <div class="P"><div class="P-h">Compaction Log</div><div class="P-b"><table><thead><tr><th>Time</th><th>Details</th><th>St</th></tr></thead><tbody id="ovComp"></tbody></table></div></div>
-    <div class="P"><div class="P-h">Agent Performance</div><div class="P-b"><table><thead><tr><th>Agent</th><th>Entries</th><th>AvgLen</th><th>Plats</th><th>Cycles</th></tr></thead><tbody id="ovPerf"></tbody></table></div></div>
-    <div class="P"><div class="P-h">Cross-Platform Memory</div><div class="P-b" id="ovXp"></div></div>
-    <div class="P"><div class="P-h">Commands</div><div class="P-b" style="padding:6px;display:flex;flex-wrap:wrap;gap:4px">
-      <button class="btn" onclick="act('cycle',this)">[RUN CYCLE]</button>
-      <button class="btn" onclick="addAg()">[ADD AGENT]</button>
-      <button class="btn" onclick="act('compact',this)">[COMPACT]</button>
-      <button class="btn" onclick="act('sync',this)">[SYNC]</button>
-    </div></div>
-  </div>
-</div>
+<!-- ROW 1 -->
+<div class="p"><div class="p-h">agents<span id="hAg"></span></div><div class="p-b"><table><thead><tr><th></th><th>name</th><th>role</th><th>plat</th><th>st</th><th>last</th></tr></thead><tbody id="tAg"></tbody></table></div></div>
 
-<!-- PAGE: AGENTS -->
-<div class="page" id="pg-agents">
-  <div class="ag-detail">
-    <div class="ag-list" id="agList"></div>
-    <div class="ag-main" id="agMain"><div style="padding:16px;color:var(--lb)">SELECT AN AGENT</div></div>
-  </div>
-</div>
+<div class="p"><div class="p-h">memory feed<span id="hFd"></span></div><div class="p-b" id="bFd"></div></div>
 
-<!-- PAGE: MEMORY -->
-<div class="page" id="pg-memory">
-  <div class="mem-page">
-    <div class="mem-bar">
-      <input id="memQ" placeholder="search entries...">
-      <select id="memAgent"><option value="">all agents</option></select>
-      <select id="memPlat"><option value="">all platforms</option></select>
-      <select id="memType"><option value="">all types</option></select>
-      <select id="memTier"><option value="">all tiers</option></select>
-    </div>
-    <div class="mem-body">
-      <div class="mem-table"><table><thead><tr><th>Time</th><th>Agent</th><th>Platform</th><th>Type</th><th>Tier</th><th>Content</th></tr></thead><tbody id="memTb"></tbody></table></div>
-      <div class="mem-side" id="memSide"></div>
-    </div>
-  </div>
-</div>
+<div class="p"><div class="p-h">last cycle<span id="hCy"></span></div><div class="p-b" id="bCy"></div></div>
 
-<!-- PAGE: PLATFORMS -->
-<div class="page" id="pg-platforms" style="overflow-y:auto;padding:4px">
-  <div class="plat-grid" id="platGrid"></div>
-  <div class="P" style="margin-top:1px"><div class="P-h">Cross-Platform Matrix</div><div class="P-b" id="platMatrix" style="padding:4px 8px"></div></div>
-</div>
+<div class="p"><div class="p-h">system</div><div class="p-b" id="bSys"></div></div>
 
-<!-- PAGE: CYCLES -->
-<div class="page" id="pg-cycles">
-  <div class="cyc-page">
-    <div class="cyc-chart"><canvas id="chCyc"></canvas></div>
-    <div class="cyc-list" id="cycList"></div>
-  </div>
-</div>
+<!-- ROW 2 -->
+<div class="p c2"><div class="p-h">entries / 14 days<span id="hTl"></span></div><div class="p-b p-chart"><canvas id="cTl"></canvas></div></div>
 
-<!-- PAGE: FABRIC -->
-<div class="page" id="pg-fabric">
-  <div class="fab-page">
-    <div class="fab-files" id="fabFiles"></div>
-    <div class="fab-preview" id="fabPrev">SELECT A FILE</div>
-  </div>
-</div>
+<div class="p"><div class="p-h">tiers</div><div class="p-b p-chart"><canvas id="cTr"></canvas><div id="bTrS" style="margin-top:2px"></div></div></div>
 
-<!-- PAGE: SYSTEM -->
-<div class="page" id="pg-system" style="overflow-y:auto;padding:4px">
-  <div class="sys-page" id="sysBody"></div>
-</div>
+<div class="p"><div class="p-h">platforms</div><div class="p-b p-chart"><canvas id="cPl"></canvas></div></div>
+
+<!-- ROW 3 -->
+<div class="p"><div class="p-h">compaction<span id="hCo"></span></div><div class="p-b"><table><thead><tr><th>time</th><th>detail</th><th>st</th></tr></thead><tbody id="tCo"></tbody></table></div></div>
+
+<div class="p"><div class="p-h">performance</div><div class="p-b"><table><thead><tr><th>agent</th><th>entries</th><th>avg</th><th>plats</th><th>cycles</th></tr></thead><tbody id="tPf"></tbody></table></div></div>
+
+<div class="p"><div class="p-h">cross-platform</div><div class="p-b" id="bXp"></div></div>
+
+<div class="p"><div class="p-h">commands</div><div class="p-b"><div class="cmd">
+  <button class="btn" onclick="act('cycle',this)">[F1 RUN CYCLE]</button>
+  <button class="btn" onclick="addA()">[F2 ADD AGENT]</button>
+  <button class="btn" onclick="act('compact',this)">[F3 COMPACT]</button>
+  <button class="btn" onclick="act('sync',this)">[F4 SYNC]</button>
+</div><div id="bLog" style="font-size:9px;color:#333;padding:4px;border-top:1px solid #1a1a1a;max-height:120px;overflow-y:auto"></div></div></div>
+
+</div><!-- /root -->
 
 <script>
-var D,CH={};
-var AC={},CP=['#ff8c00','#00ccff','#00ff00','#ff00ff','#eab308','#ff3333','#00ffcc','#ff6600'];
-var PAGES=['overview','agents','memory','platforms','cycles','fabric','system'];
-var curPage='overview',selAgent='';
-
+var CH={},D;
+var AC={},CP=['#ff8c00','#4488cc','#33aa55','#aa44cc','#cc4444','#aaaa33','#33aaaa','#cc6622'];
+function $(id){return document.getElementById(id)}
 function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML}
 function ago(t){if(!t)return'--';try{var d=new Date(t.replace(' UTC',':00Z').replace(' ','T')),m=Math.floor((Date.now()-d)/6e4);return m<1?'<1m':m<60?m+'m':m<1440?Math.floor(m/60)+'h':Math.floor(m/1440)+'d'}catch(e){return'--'}}
 function ac(n){if(!AC[n])AC[n]=CP[Object.keys(AC).length%CP.length];return AC[n]}
-function kb(b){return(b/1024).toFixed(1)}
-function pa(p){return{telegram:'TGM',discord:'DSC',slack:'SLK',whatsapp:'WHA',signal:'SIG',email:'EML',cli:'CLI','slack-wh':'SWH'}[p]||p.slice(0,3).toUpperCase()}
-function pc(p){return{telegram:'#229ED9',discord:'#5865F2',slack:'#611f69',whatsapp:'#25D366',signal:'#3A76F0',email:'#888',cli:'#fff',dialogue:'#ff8c00',multi:'#888'}[p]||'#888'}
-function uptime(s){return Math.floor(s/3600)+'h '+Math.floor(s%3600/60)+'m'}
+function kb(b){return(b/1024).toFixed(1)+'K'}
+function pa(p){return{telegram:'TGM',discord:'DSC',slack:'SLK',whatsapp:'WHA',signal:'SIG',email:'EML',cli:'CLI','slack-wh':'SWH',dialogue:'DLG',multi:'MUL'}[p]||(p||'--').slice(0,3).toUpperCase()}
+function pc(p){return{telegram:'#229ED9',discord:'#5865F2',slack:'#611f69',whatsapp:'#25D366',signal:'#3A76F0',email:'#888',cli:'#aaa',dialogue:'#ff8c00'}[p]||'#666'}
+function up(s){var h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h+'h'+m+'m'}
 
-// NAV
-function initNav(){
-  var h='';PAGES.forEach(function(p){h+='<div class="nav-tab'+(p===curPage?' on':'')+'" data-page="'+p+'">['+p.toUpperCase()+']</div>'});
-  document.getElementById('navTabs').innerHTML=h;
-  document.querySelectorAll('.nav-tab').forEach(function(el){el.onclick=function(){switchPage(el.dataset.page)}});
-}
-function switchPage(p){
-  curPage=p;
-  document.querySelectorAll('.page').forEach(function(el){el.classList.remove('on')});
-  document.getElementById('pg-'+p).classList.add('on');
-  document.querySelectorAll('.nav-tab').forEach(function(el){el.classList.toggle('on',el.dataset.page===p)});
-  if(p==='agents')loadAgents();
-  if(p==='memory')loadMemory();
-  if(p==='platforms')loadPlatforms();
-  if(p==='cycles')loadCycles();
-  if(p==='fabric')loadFabric('');
-  if(p==='system')loadSystem();
-}
-initNav();
-
-// OVERVIEW
-function renderOverview(d){
+function render(d){
   D=d;var s=d.stats;
+  // topbar
+  $('sAg').textContent=s.activeAgents+'/'+s.totalAgents;
+  $('sCy').textContent=s.totalCycles;
+  $('sEn').textContent=s.totalEntries;
+  $('sHot').textContent=s.hot;
+  $('sWrm').textContent=s.warm;
+  $('sCld').textContent=s.cold;
+  $('sBr').textContent=kb(s.brainSize);
+  $('sUp').textContent=up(s.uptime);
+
   // ticker
-  var tk='';d.ticker.forEach(function(t){tk+='<b>'+ago(t.time)+'</b> '+esc(t.text)+' &nbsp;|&nbsp; '});
-  document.getElementById('ticker').innerHTML=tk||'NO EVENTS';
-  document.getElementById('ovNag').textContent=s.totalAgents;
-  document.getElementById('ovNfd').textContent=d.entries.length;
-  document.getElementById('ovNcy').textContent='cycle '+s.totalCycles;
+  var tk='';(d.ticker||[]).forEach(function(t){tk+='<em>'+ago(t.time)+'</em> '+esc(t.text)+'  │  '});
+  // add last cron entries
+  (d.cronTail||[]).slice(-2).forEach(function(l){tk+='<em>log</em> '+esc(l.slice(0,60))+'  │  '});
+  $('ticker').innerHTML=tk||'<span style="color:#333">NO EVENTS</span>';
 
-  // agents
+  // panel headers
+  $('hAg').textContent=s.totalAgents;
+  $('hFd').textContent=d.entries.length;
+  $('hCy').textContent='#'+s.totalCycles;
+  $('hCo').textContent=d.compaction.length;
+  $('hTl').textContent=Object.keys(d.timeline).length+'d';
+
+  // AGENT TABLE
   var h='';d.agents.forEach(function(a){
-    var pA=a.platforms.map(function(p){return pa(p.name)}).join('/');
-    var st=a.online?'ACTIVE':a.cycles.length?'IDLE':'OFF';
-    var sc=a.online?'color:var(--up)':a.cycles.length?'color:#eab308':'color:var(--dn)';
-    h+='<tr><td><span class="dot '+(a.online?'on':'off')+'"></span></td><td style="color:'+ac(a.name)+'">'+esc(a.name)+'</td><td style="color:#888;max-width:100px">'+esc((a.role||'').slice(0,20))+'</td><td style="color:#888">'+pA+'</td><td style="'+sc+'">'+st+'</td><td style="color:#888">'+ago(a.lastActive)+'</td></tr>';
-  });document.getElementById('ovAg').innerHTML=h;
+    var c=ac(a.name),pl=a.platforms.map(function(p){return pa(p.name)}).join('/');
+    var st=a.online?'RUN':a.cycles.length?'IDLE':'OFF';
+    var sc=a.online?'g':a.cycles.length?'a':'r';
+    h+='<tr><td><span class="dot '+(a.online?'on':'off')+'"></span></td>'
+      +'<td style="color:'+c+'">'+esc(a.name)+'</td>'
+      +'<td class="d" style="max-width:100px">'+esc((a.role||'').slice(0,22))+'</td>'
+      +'<td class="d">'+pl+'</td>'
+      +'<td class="'+sc+'">'+st+'</td>'
+      +'<td class="d">'+ago(a.lastActive)+'</td></tr>';
+  });$('tAg').innerHTML=h;
 
-  // feed
-  h='';d.entries.slice(0,20).forEach(function(e){
-    h+='<div class="feed-line"><span style="color:#555">'+(e.timestamp?e.timestamp.slice(11,19):'--')+'</span> <span style="color:'+ac(e.agent)+'">'+esc(e.agent)+'</span> <span style="color:#333">'+pa(e.platform)+'</span> <span style="color:#ccc">'+esc((e.summary||e.body||'').slice(0,80))+'</span></div>';
-  });document.getElementById('ovFd').innerHTML=h||'<div style="padding:6px;color:#555">NO ENTRIES</div>';
+  // MEMORY FEED
+  h='';d.entries.slice(0,25).forEach(function(e){
+    h+='<div class="feed"><span class="d">'+(e.timestamp?e.timestamp.slice(11,19):'--:--:--')+'</span> <span style="color:'+ac(e.agent)+'">'+esc(e.agent)+'</span> <span style="color:#333">'+pa(e.platform)+'</span> <span style="color:#888">'+esc((e.summary||e.body||'').slice(0,70))+'</span></div>';
+  });$('bFd').innerHTML=h||'<div class="feed d">NO ENTRIES</div>';
 
-  // cycle output
+  // CYCLE OUTPUT
   h='';d.feed.forEach(function(f){
-    h+='<div style="padding:4px 6px;border-bottom:1px solid #0d0d0d"><div style="color:'+ac(f.agent)+';font-weight:700">'+esc(f.agent)+' <span style="color:#555;font-weight:400">#'+f.cycle+'</span></div><div style="color:#ccc;margin-top:2px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;line-height:1.4">'+esc(f.thought||f.response||'')+'</div></div>';
-  });document.getElementById('ovCy').innerHTML=h||'<div style="padding:6px;color:#555">NO CYCLES</div>';
+    h+='<div style="padding:3px 4px;border-bottom:1px solid #0a0a0a">'
+      +'<span style="color:'+ac(f.agent)+';font-weight:700">'+esc(f.agent)+'</span> <span class="d">#'+f.cycle+'</span>'
+      +'<div style="color:#999;margin-top:1px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">'+esc(f.thought||f.response||'')+'</div></div>';
+  });$('bCy').innerHTML=h||'<div class="feed d">NO CYCLES</div>';
 
-  // system
-  h='';[['Uptime',uptime(s.uptime)],['Brain',kb(s.brainSize)+' KB'],['Entries',''+s.totalEntries],['Today',''+s.entriesToday],['Hot/Warm/Cold',s.hot+'/'+s.warm+'/'+s.cold],['Agents',s.activeAgents+'/'+s.totalAgents],['Platforms',''+s.platforms.length]].forEach(function(r){h+='<div class="kv"><span class="k">'+r[0]+'</span><span class="v">'+r[1]+'</span></div>'});
-  document.getElementById('ovSys').innerHTML=h;
+  // SYSTEM
+  h='';[
+    ['uptime',up(s.uptime)],['brain',kb(s.brainSize)],['entries',''+s.totalEntries],
+    ['today',''+s.entriesToday],['hot/wrm/cld',s.hot+'/'+s.warm+'/'+s.cold],
+    ['agents',s.activeAgents+'/'+s.totalAgents],['platforms',''+s.platforms.length],
+    ['gateways',s.activeAgents+' running'],
+  ].forEach(function(r){h+='<div class="kv"><span class="k">'+r[0]+'</span><span class="v">'+r[1]+'</span></div>'});
+  $('bSys').innerHTML=h;
 
-  // compaction
-  h='';d.compaction.slice(0,10).forEach(function(c){h+='<tr><td style="color:#888">'+esc(c.timestamp)+'</td><td style="color:#ccc;max-width:240px">'+c.details.map(esc).join(' ')+'</td><td style="color:var(--up)">OK</td></tr>'});
-  if(!d.compaction.length)h='<tr><td colspan="3" style="color:#555">NONE</td></tr>';
-  document.getElementById('ovComp').innerHTML=h;
+  // COMPACTION
+  h='';if(d.compaction.length){d.compaction.forEach(function(c){
+    h+='<tr><td class="d">'+esc((c.timestamp||'').slice(0,16))+'</td><td class="d" style="max-width:200px">'+c.details.map(esc).join(' ')+'</td><td class="g">OK</td></tr>';
+  })}else h='<tr><td colspan="3" class="d">no compaction events</td></tr>';
+  $('tCo').innerHTML=h;
 
-  // performance
-  h='';d.agents.forEach(function(a){h+='<tr><td style="color:'+ac(a.name)+'">'+esc(a.name)+'</td><td style="color:#fff">'+a.totalEntries+'</td><td style="color:#fff">'+a.avgLen+'</td><td style="color:#888">'+a.platforms.length+'</td><td style="color:#fff">'+a.cycles.length+'</td></tr>'});
-  document.getElementById('ovPerf').innerHTML=h;
+  // PERFORMANCE
+  h='';d.agents.forEach(function(a){
+    h+='<tr><td style="color:'+ac(a.name)+'">'+esc(a.name)+'</td>'
+      +'<td class="w">'+a.totalEntries+'</td>'
+      +'<td class="w">'+a.avgLen+'</td>'
+      +'<td class="d">'+a.platforms.length+'</td>'
+      +'<td class="w">'+a.cycles.length+'</td></tr>';
+  });$('tPf').innerHTML=h;
 
-  // cross-platform
-  h='';var seen={};d.entries.forEach(function(e){d.entries.forEach(function(e2){
-    if(e.agent===e2.agent&&e.platform!==e2.platform&&e.platform&&e2.platform){
-      var k=e.agent+e.platform+e2.platform;if(seen[k])return;seen[k]=1;
-      h+='<div class="feed-line"><span style="color:var(--up)">'+pa(e.platform)+':'+esc(e.agent)+'</span> <span style="color:#555">recalled</span> <span style="color:var(--bl)">'+pa(e2.platform)+':'+esc(e2.agent)+'</span> <span style="color:#333">'+ago(e2.timestamp)+'</span></div>';
-    }
-  })});
-  document.getElementById('ovXp').innerHTML=h||'<div style="padding:6px;color:#555">NO CROSS-PLATFORM RECALLS</div>';
+  // CROSS-PLATFORM
+  h='';var seen={};
+  d.entries.forEach(function(e){if(!e.platform)return;
+    d.entries.forEach(function(e2){if(!e2.platform)return;
+      if(e.agent===e2.agent&&e.platform!==e2.platform){
+        var k=e.agent+e.platform+e2.platform;if(seen[k])return;seen[k]=1;
+        h+='<div class="feed"><span class="g">'+pa(e.platform)+':'+esc(e.agent)+'</span>'
+          +' <span class="d">↔</span> '
+          +'<span style="color:#4488cc">'+pa(e2.platform)+':'+esc(e2.agent)+'</span>'
+          +' <span class="d">'+ago(e2.timestamp)+'</span></div>';
+      }
+    });
+  });
+  $('bXp').innerHTML=h||'<div class="feed d">no cross-platform recalls yet</div>';
 
-  // tier stats
-  document.getElementById('ovTrSt').innerHTML='<div class="kv"><span class="k">Total</span><span class="v">'+s.totalEntries+'</span></div><div class="kv"><span class="k">Avg</span><span class="v">'+(s.totalEntries?Math.round(s.brainSize/s.totalEntries)+'B':'--')+'</span></div>';
+  // TIER STATS
+  $('bTrS').innerHTML='<div class="kv"><span class="k">total</span><span class="v">'+s.totalEntries+'</span></div>'
+    +'<div class="kv"><span class="k">avg size</span><span class="v">'+(s.totalEntries?Math.round(s.brainSize/s.totalEntries)+'B':'--')+'</span></div>';
+
+  // CRON LOG in commands panel
+  h='';(d.cronTail||[]).slice(-8).forEach(function(l){h+='<div>'+esc(l.slice(0,80))+'</div>'});
+  $('bLog').innerHTML=h;
 
   // CHARTS
-  renderCharts(d);
+  charts(d);
 }
 
-function renderCharts(d){
-  var s=d.stats,days=Object.keys(d.timeline).sort(),agents=d.agents.map(function(a){return a.name});
-  // timeline
-  var ds=agents.map(function(a){return{label:a,data:days.map(function(dy){return d.timeline[dy][a]||0}),borderColor:ac(a),backgroundColor:'transparent',borderWidth:2,pointRadius:0,tension:.3}});
-  if(CH.tl){CH.tl.data.labels=days.map(function(d){return d.slice(5)});CH.tl.data.datasets=ds;CH.tl.update()}
-  else CH.tl=new Chart(document.getElementById('chTl'),{type:'line',data:{labels:days.map(function(d){return d.slice(5)}),datasets:ds},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top',labels:{color:'#888',font:{family:'JetBrains Mono',size:9},boxWidth:10,padding:6}}},scales:{x:{grid:{color:'#1a1a1a'},ticks:{color:'#888',font:{family:'JetBrains Mono',size:9}}},y:{grid:{color:'#1a1a1a'},ticks:{color:'#888',font:{family:'JetBrains Mono',size:9}},beginAtZero:true}}}});
-  // tier
-  var td=[s.hot,s.warm,s.cold];
-  if(CH.tr){CH.tr.data.datasets[0].data=td;CH.tr.update()}
-  else CH.tr=new Chart(document.getElementById('chTr'),{type:'bar',data:{labels:['HOT','WARM','COLD'],datasets:[{data:td,backgroundColor:['#ff8c00','#eab308','#3b82f6'],borderWidth:0}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'#1a1a1a'},ticks:{color:'#888',font:{family:'JetBrains Mono',size:9}}},y:{grid:{display:false},ticks:{color:'#ff8c00',font:{family:'JetBrains Mono',size:10,weight:'bold'}}}}}});
-  // platform
-  var pl=Object.keys(d.platDist),pv=pl.map(function(l){return d.platDist[l]}),pcl=pl.map(pc);
-  if(CH.pl){CH.pl.data.labels=pl;CH.pl.data.datasets[0].data=pv;CH.pl.data.datasets[0].backgroundColor=pcl;CH.pl.update()}
-  else CH.pl=new Chart(document.getElementById('chPl'),{type:'doughnut',data:{labels:pl,datasets:[{data:pv,backgroundColor:pcl,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#888',font:{family:'JetBrains Mono',size:9},boxWidth:10,padding:4}}}}});
-}
+function charts(d){
+  var s=d.stats;
+  var days=Object.keys(d.timeline).sort();
+  var names=d.agents.map(function(a){return a.name});
 
-// AGENTS PAGE
-function loadAgents(){
-  fetch('/api/agents').then(function(r){return r.json()}).then(function(agents){
-    var h='';agents.forEach(function(a){h+='<div class="ag-list-item'+(selAgent===a.name?' sel':'')+'" data-name="'+a.name+'" style="color:'+ac(a.name)+'"><span class="dot '+(a.online?'on':'off')+'"></span>'+esc(a.name)+'</div>'});
-    document.getElementById('agList').innerHTML=h;
-    document.querySelectorAll('.ag-list-item').forEach(function(el){el.onclick=function(){selAgent=el.dataset.name;loadAgentDetail(selAgent);loadAgents()}});
-  });
-}
-function loadAgentDetail(name){
-  fetch('/api/agent/'+name).then(function(r){return r.json()}).then(function(a){
-    var c=ac(a.name);
-    var h='<div class="ag-banner">'+
-      '+-'+'-'.repeat(Math.max(a.name.length+2,20))+'-+\n'+
-      '|  '+a.name.toUpperCase()+' '.repeat(Math.max(0,20-a.name.length))+'  |\n'+
-      '|  '+((a.role||'').slice(0,20)+' '.repeat(20)).slice(0,20)+'  |\n'+
-      '+-'+'-'.repeat(Math.max(a.name.length+2,20))+'-+</div>';
-    h+='<div class="ag-cols"><div class="ag-col">';
-    // soul
-    h+='<div class="P"><div class="P-h">Soul</div><div class="P-b" style="max-height:120px;white-space:pre-wrap;color:#ccc;font-size:10px;padding:4px">'+esc(a.soul||'--')+'</div></div>';
-    // stats
-    h+='<div class="P"><div class="P-h">Stats</div><div class="P-b">';
-    [['Cycles',''+a.cycles.length],['Entries',''+a.totalEntries],['Avg Len',''+a.avgLen],['First',ago(a.firstSeen)],['Last',ago(a.lastActive)]].forEach(function(r){h+='<div class="kv"><span class="k">'+r[0]+'</span><span class="v">'+r[1]+'</span></div>'});
-    h+='</div></div>';
-    // platforms
-    h+='<div class="P"><div class="P-h">Platforms</div><div class="P-b">';
-    Object.entries(a.entriesByPlatform).forEach(function(r){h+='<div class="kv"><span class="k">'+r[0]+'</span><span class="v">'+r[1]+'</span></div>'});
-    if(!Object.keys(a.entriesByPlatform).length)h+='<div style="padding:4px;color:#555">NONE</div>';
-    h+='</div></div>';
-    h+='</div><div class="ag-col">';
-    // recent cycles
-    h+='<div class="P"><div class="P-h">Recent Output</div><div class="P-b">';
-    a.recentCycles.forEach(function(cy){h+='<div style="padding:3px 6px;border-bottom:1px solid #0d0d0d"><span style="color:#555">#'+cy.cycle+'</span> <span style="color:#888">'+ago(cy.timestamp)+'</span><div style="color:#ccc;font-size:10px;margin-top:1px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">'+esc(cy.thought||cy.response)+'</div></div>'});
-    h+='</div></div>';
-    // recent entries
-    h+='<div class="P"><div class="P-h">Memory Written</div><div class="P-b">';
-    a.recentEntries.forEach(function(e){h+='<div style="padding:2px 6px;border-bottom:1px solid #0d0d0d;font-size:10px"><span style="color:'+pc(e.platform)+'">'+pa(e.platform)+'</span> <span style="color:#888">'+esc(e.type)+'</span> <span style="color:#555">'+ago(e.timestamp)+'</span><div style="color:#ccc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc((e.summary||e.body||'').slice(0,80))+'</div></div>'});
-    h+='</div></div>';
-    h+='</div></div>';
-    // charts
-    h+='<div style="display:grid;grid-template-columns:1fr 1fr;height:140px;border-top:1px solid var(--bd)"><div style="padding:4px 8px"><canvas id="chAgAct"></canvas></div><div style="padding:4px 8px"><canvas id="chAgLen"></canvas></div></div>';
-    document.getElementById('agMain').innerHTML=h;
-    // activity chart
-    var dys=Object.keys(a.entriesByDay).sort().slice(-30);
-    new Chart(document.getElementById('chAgAct'),{type:'bar',data:{labels:dys.map(function(d){return d.slice(5)}),datasets:[{data:dys.map(function(d){return a.entriesByDay[d]}),backgroundColor:'#ff8c00',borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'#1a1a1a'},ticks:{color:'#555',font:{family:'JetBrains Mono',size:8}}},y:{grid:{color:'#1a1a1a'},ticks:{color:'#555',font:{family:'JetBrains Mono',size:8}},beginAtZero:true}}}});
-    // response length
-    var rl=a.responseLengths;
-    new Chart(document.getElementById('chAgLen'),{type:'line',data:{labels:rl.map(function(r){return'#'+r.cycle}),datasets:[{data:rl.map(function(r){return r.len}),borderColor:'#00ccff',backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'#1a1a1a'},ticks:{color:'#555',font:{family:'JetBrains Mono',size:8}}},y:{grid:{color:'#1a1a1a'},ticks:{color:'#555',font:{family:'JetBrains Mono',size:8}}}}}});
-  });
-}
+  // TIMELINE
+  var ds=names.map(function(n){return{
+    label:n,data:days.map(function(dy){return d.timeline[dy][n]||0}),
+    borderColor:ac(n),backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:.3
+  }});
+  var tlCfg={type:'line',data:{labels:days.map(function(d){return d.slice(5)}),datasets:ds},options:{
+    responsive:true,maintainAspectRatio:false,animation:false,
+    plugins:{legend:{display:true,position:'top',labels:{color:'#666',font:{family:'JetBrains Mono',size:9},boxWidth:8,padding:4}}},
+    scales:{x:{grid:{color:'#151515',drawBorder:false},ticks:{color:'#444',font:{family:'JetBrains Mono',size:8},maxRotation:0}},
+            y:{grid:{color:'#151515',drawBorder:false},ticks:{color:'#444',font:{family:'JetBrains Mono',size:8}},beginAtZero:true}}
+  }};
+  if(CH.tl){CH.tl.data=tlCfg.data;CH.tl.update()}else CH.tl=new Chart($('cTl'),tlCfg);
 
-// MEMORY PAGE
-function loadMemory(){
-  fetch('/api/memory').then(function(r){return r.json()}).then(function(entries){
-    // populate filters
-    var agents=[...new Set(entries.map(function(e){return e.agent}))];
-    var plats=[...new Set(entries.map(function(e){return e.platform}).filter(Boolean))];
-    var types=[...new Set(entries.map(function(e){return e.type}).filter(Boolean))];
-    var sel=document.getElementById('memAgent');sel.innerHTML='<option value="">all agents</option>';agents.forEach(function(a){sel.innerHTML+='<option>'+a+'</option>'});
-    sel=document.getElementById('memPlat');sel.innerHTML='<option value="">all platforms</option>';plats.forEach(function(p){sel.innerHTML+='<option>'+p+'</option>'});
-    sel=document.getElementById('memType');sel.innerHTML='<option value="">all types</option>';types.forEach(function(t){sel.innerHTML+='<option>'+t+'</option>'});
-    document.getElementById('memTier').innerHTML='<option value="">all tiers</option><option>hot</option><option>warm</option><option>cold</option>';
-    renderMemTable(entries);
-    // sidebar
-    var hot=entries.filter(function(e){return e.tier==='hot'}).length,warm=entries.filter(function(e){return e.tier==='warm'}).length,cold=entries.filter(function(e){return e.tier==='cold'}).length;
-    var h='<div class="P"><div class="P-h">Memory Stats</div><div class="P-b">';
-    h+='<div class="kv"><span class="k">Total</span><span class="v">'+entries.length+'</span></div>';
-    h+='<div class="kv"><span class="k">Hot</span><span class="v" style="color:var(--am)">'+hot+'</span></div>';
-    h+='<div class="kv"><span class="k">Warm</span><span class="v" style="color:#eab308">'+warm+'</span></div>';
-    h+='<div class="kv"><span class="k">Cold</span><span class="v" style="color:var(--bl)">'+cold+'</span></div>';
-    var agC={};entries.forEach(function(e){agC[e.agent]=(agC[e.agent]||0)+1});
-    Object.entries(agC).forEach(function(r){h+='<div class="kv"><span class="k" style="color:'+ac(r[0])+'">'+r[0]+'</span><span class="v">'+r[1]+'</span></div>'});
-    h+='</div></div>';
-    document.getElementById('memSide').innerHTML=h;
-    // chart at bottom of sidebar
-    h+='<div style="padding:4px;height:120px"><canvas id="chMemGrow"></canvas></div>';
-    document.getElementById('memSide').innerHTML=h;
-  });
-}
-function renderMemTable(entries){
-  var q=(document.getElementById('memQ').value||'').toLowerCase();
-  var fa=document.getElementById('memAgent').value;
-  var fp=document.getElementById('memPlat').value;
-  var ft=document.getElementById('memType').value;
-  var ftr=document.getElementById('memTier').value;
-  var filtered=entries.filter(function(e){
-    if(q&&!(e.body+e.summary+e.agent+e.platform).toLowerCase().includes(q))return false;
-    if(fa&&e.agent!==fa)return false;if(fp&&e.platform!==fp)return false;
-    if(ft&&e.type!==ft)return false;if(ftr&&e.tier!==ftr)return false;return true;
-  });
-  var h='';filtered.slice(0,100).forEach(function(e){
-    var tc=e.tier==='hot'?'color:var(--am)':e.tier==='warm'?'color:#eab308':'color:var(--bl)';
-    h+='<tr><td style="color:#888">'+(e.timestamp?e.timestamp.slice(0,16):'--')+'</td><td style="color:'+ac(e.agent)+'">'+esc(e.agent)+'</td><td style="color:#888">'+esc(e.platform)+'</td><td style="color:#888">'+esc(e.type)+'</td><td style="'+tc+'">'+esc(e.tier)+'</td><td style="color:#ccc;max-width:300px">'+esc((e.summary||e.body||'').slice(0,80))+'</td></tr>';
-  });document.getElementById('memTb').innerHTML=h||'<tr><td colspan="6" style="color:#555">NO ENTRIES</td></tr>';
-}
+  // TIERS
+  var trCfg={type:'bar',data:{labels:['HOT','WARM','COLD'],datasets:[{data:[s.hot,s.warm,s.cold],backgroundColor:['#ff8c00','#a08520','#4080c0'],borderWidth:0,barThickness:12}]},options:{
+    indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:false,
+    plugins:{legend:{display:false}},
+    scales:{x:{grid:{color:'#151515',drawBorder:false},ticks:{color:'#444',font:{family:'JetBrains Mono',size:8}}},
+            y:{grid:{display:false},ticks:{color:'#ff8c00',font:{family:'JetBrains Mono',size:9,weight:'bold'}}}}
+  }};
+  if(CH.tr){CH.tr.data=trCfg.data;CH.tr.update()}else CH.tr=new Chart($('cTr'),trCfg);
 
-// PLATFORMS PAGE
-function loadPlatforms(){
-  fetch('/api/platforms').then(function(r){return r.json()}).then(function(plats){
-    var h='';plats.forEach(function(p){
-      h+='<div class="plat-card"><div class="plat-name" style="color:'+p.color+'">'+esc(p.name.toUpperCase())+'</div>';
-      h+='<div style="color:'+(p.state==='connected'?'var(--up)':'var(--dn)')+'">'+p.state.toUpperCase()+'</div>';
-      h+='<div class="kv"><span class="k">Entries</span><span class="v">'+p.entries+'</span></div>';
-      h+='<div class="kv"><span class="k">Agents</span><span class="v">'+p.agents.join(', ')+'</span></div>';
-      h+='</div>';
-    });document.getElementById('platGrid').innerHTML=h||'<div style="padding:8px;color:#555">NO PLATFORMS</div>';
-  });
-}
-
-// CYCLES PAGE
-function loadCycles(){
-  fetch('/api/cycles').then(function(r){return r.json()}).then(function(cycles){
-    var h='';cycles.forEach(function(c){
-      h+='<div class="cyc-item" onclick="this.classList.toggle(\'open\')"><div class="cyc-hd"><span style="color:var(--am)">#'+c.cycle+'</span> <span style="color:#888">'+esc(c.timestamp)+'</span> <span style="color:#555">'+c.agents.length+' agents</span></div><div class="cyc-body">';
-      c.agents.forEach(function(a){h+='<div style="padding:2px 0"><span style="color:'+ac(a.name)+'">'+esc(a.name)+'</span><div style="color:#ccc;font-size:10px;margin-top:1px">'+esc((a.thought||a.response||'').slice(0,200))+'</div></div>'});
-      h+='</div></div>';
-    });document.getElementById('cycList').innerHTML=h||'<div style="padding:8px;color:#555">NO CYCLES</div>';
-  });
-}
-
-// FABRIC PAGE
-function loadFabric(dir){
-  fetch('/api/fabric?dir='+encodeURIComponent(dir)).then(function(r){return r.json()}).then(function(files){
-    var h='';
-    if(dir)h+='<div class="fab-file dir" onclick="loadFabric(\'\')">../</div>';
-    files.forEach(function(f){
-      if(f.isDir)h+='<div class="fab-file dir" onclick="loadFabric(\''+f.name+'\')">drwxr-xr-x  '+esc(f.name)+'/</div>';
-      else h+='<div class="fab-file" onclick="loadFabricFile(\''+((dir?dir+'/':'')+f.name)+'\')"">-rw-r--r--  '+esc(f.name)+' ('+f.size+'B)</div>';
-    });document.getElementById('fabFiles').innerHTML=h||'<div style="color:#555">EMPTY</div>';
-  });
-}
-function loadFabricFile(fp){
-  fetch('/api/fabric/'+encodeURIComponent(fp)).then(function(r){return r.json()}).then(function(d){
-    document.getElementById('fabPrev').textContent=d.content||'EMPTY';
-  });
-}
-
-// SYSTEM PAGE
-function loadSystem(){
-  fetch('/api/system').then(function(r){return r.json()}).then(function(sys){
-    var h='';
-    h+='<div class="P"><div class="P-h">System Info</div><div class="P-b">';
-    [['Hermes',sys.hermes],['Node',sys.node],['Platform',sys.platform+'/'+sys.arch],['Fabric',kb(sys.fabricSize)+' KB']].forEach(function(r){h+='<div class="kv"><span class="k">'+r[0]+'</span><span class="v">'+r[1]+'</span></div>'});
-    h+='</div></div>';
-    h+='<div class="P"><div class="P-h">Env Status</div><div class="P-b"><table><thead><tr><th>Agent</th><th>API Key</th><th>Telegram</th><th>Discord</th><th>Slack</th></tr></thead><tbody>';
-    sys.envStatus.forEach(function(a){
-      h+='<tr><td style="color:var(--am)">'+esc(a.name)+'</td>';
-      Object.values(a.vars).forEach(function(v){h+='<td style="color:'+(v==='SET'?'var(--up)':'var(--dn)')+'">'+v+'</td>'});
-      h+='</tr>';
-    });h+='</tbody></table></div></div>';
-    h+='<div class="P" style="grid-column:span 2"><div class="P-h">Configuration (agents.yml)</div><div class="P-b" style="white-space:pre;color:#ccc;font-size:10px;padding:4px">'+esc(sys.agents)+'</div></div>';
-    h+='<div class="P" style="grid-column:span 2"><div class="P-h">Error Log (cron.log)</div><div class="P-b" style="font-size:10px;color:var(--dn);padding:4px">';
-    sys.cronLog.forEach(function(l){h+='<div>'+esc(l)+'</div>'});
-    if(!sys.cronLog.length)h+='<div style="color:#555">NO LOG ENTRIES</div>';
-    h+='</div></div>';
-    document.getElementById('sysBody').innerHTML=h;
-  });
+  // PLATFORMS
+  var pl=Object.keys(d.platDist||{}),pv=pl.map(function(l){return d.platDist[l]}),pcl=pl.map(pc);
+  var plCfg={type:'doughnut',data:{labels:pl,datasets:[{data:pv,backgroundColor:pcl,borderWidth:0}]},options:{
+    responsive:true,maintainAspectRatio:false,animation:false,cutout:'60%',
+    plugins:{legend:{position:'right',labels:{color:'#666',font:{family:'JetBrains Mono',size:9},boxWidth:8,padding:4}}}
+  }};
+  if(CH.pl){CH.pl.data=plCfg.data;CH.pl.update()}else CH.pl=new Chart($('cPl'),plCfg);
 }
 
 // ACTIONS
-function act(name,btn){if(btn){btn.textContent='[RUNNING...]';btn.style.color='#555'}fetch('/api/'+name,{method:'POST'}).then(function(){if(btn)setTimeout(function(){btn.textContent='['+name.toUpperCase()+']';btn.style.color=''},3000)})}
-function addAg(){var n=prompt('Agent name:'),r=prompt('Role:');if(n&&r)fetch('/api/agent',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,role:r})}).then(function(){location.reload()})}
+function act(n,btn){
+  if(btn){var orig=btn.textContent;btn.textContent='[RUNNING...]';btn.style.color='#555';
+    setTimeout(function(){btn.textContent=orig;btn.style.color=''},4000)}
+  fetch('/api/'+n,{method:'POST'});
+}
+function addA(){
+  var n=prompt('agent name:'),r=prompt('role:');
+  if(n&&r)fetch('/api/agent',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,role:r})}).then(function(){location.reload()});
+}
 
-// FILTERS
-['memQ','memAgent','memPlat','memType','memTier'].forEach(function(id){
-  var el=document.getElementById(id);if(el)el.addEventListener('input',function(){loadMemory()})
-  if(el&&el.tagName==='SELECT')el.addEventListener('change',function(){loadMemory()})
+// KEYBOARD
+document.addEventListener('keydown',function(e){
+  if(e.key==='F1'){e.preventDefault();act('cycle')}
+  if(e.key==='F2'){e.preventDefault();addA()}
+  if(e.key==='F3'){e.preventDefault();act('compact')}
+  if(e.key==='F4'){e.preventDefault();act('sync')}
 });
 
 // CLOCK
-function tick(){document.querySelector('.nav-logo').title=new Date().toISOString().slice(0,19)+' UTC'}
-setInterval(tick,1000);
+setInterval(function(){$('sClock').textContent=new Date().toISOString().slice(11,19)+' UTC';if(D)D.stats.uptime++},1000);
 
 // DATA
-fetch('/api/data').then(function(r){return r.json()}).then(renderOverview);
+fetch('/api/data').then(function(r){return r.json()}).then(render);
 var sse=new EventSource('/api/events');
-sse.onmessage=function(e){if(curPage==='overview')renderOverview(JSON.parse(e.data))};
+sse.onmessage=function(e){render(JSON.parse(e.data))};
+sse.onerror=function(){$('sLive').textContent='● DISCONNECTED';$('sLive').style.color='#f33'};
+sse.onopen=function(){$('sLive').textContent='● LIVE';$('sLive').style.color='#0f0'};
 </script>
 </body>
 </html>
