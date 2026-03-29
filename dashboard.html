@@ -4,294 +4,307 @@
 <meta charset="utf-8">
 <title>ICARUS</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden}
-body{font:11px/1.3 'JetBrains Mono',monospace;background:#000;color:#ff8c00}
+body{font:12px/1.4 'JetBrains Mono',monospace;background:#0e0e10;color:#d1d1d6;font-variant-numeric:tabular-nums}
 
-/* everything is a grid of bordered cells, edge to edge */
-.root{display:grid;width:100vw;height:100vh;grid-template-rows:24px 18px 1fr 1fr 1fr;grid-template-columns:1fr 1fr 1fr 1fr}
+.root{display:grid;width:100vw;height:100vh;grid-template-rows:auto 1fr;grid-template-columns:280px 1fr 300px}
 
-/* top bar spans all 4 cols */
-.topbar{grid-column:1/-1;background:#0a0a0a;border-bottom:1px solid #1a1a1a;display:flex;align-items:center;padding:0 8px;gap:12px;overflow:hidden}
-.topbar .logo{color:#ff8c00;font-weight:700;font-size:12px;letter-spacing:2px;white-space:nowrap}
-.topbar .sep{color:#222;font-size:10px}
-.topbar .kv{font-size:10px;color:#555;white-space:nowrap}
-.topbar .kv b{color:#ccc;font-weight:400}
-.topbar .live{color:#0f0;font-size:10px;margin-left:auto;white-space:nowrap}
-.topbar .clock{color:#555;font-size:10px}
+/* ════ HEADER ════ spans all 3 cols */
+.hdr{grid-column:1/-1;background:#151518;border-bottom:1px solid #252530;display:flex;align-items:center;padding:6px 10px;gap:14px;min-height:56px}
+.hdr-ascii{font-size:6.5px;line-height:7.5px;color:#ff9933;white-space:pre;flex-shrink:0;letter-spacing:0}
+.hdr-stats{display:flex;gap:10px;font-size:11px;align-items:center;flex-wrap:wrap}
+.hdr-stats .k{color:#5a5a6a}.hdr-stats .v{color:#ff9933}
+.hdr-stats .sep{color:#252530}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.hdr-live{color:#26a65b;font-size:11px}
+.hdr-clock{color:#5a5a6a;font-size:11px}
 
-/* ticker spans all cols */
-.ticker{grid-column:1/-1;background:#050505;border-bottom:1px solid #1a1a1a;display:flex;align-items:center;padding:0 8px;font-size:10px;color:#444;overflow:hidden;gap:12px;white-space:nowrap}
-.ticker em{color:#ff8c00;font-style:normal;font-size:9px}
+.ticker{grid-column:1/-1;height:20px;background:#111114;border-bottom:1px solid #252530;display:flex;align-items:center;padding:0 10px;font-size:10px;color:#5a5a6a;overflow:hidden;gap:10px;white-space:nowrap}
+.ticker b{color:#ff9933;font-weight:400}
 
-/* panels */
-.p{border:1px solid #1a1a1a;display:flex;flex-direction:column;overflow:hidden;min-width:0;min-height:0}
-.p-h{height:18px;background:#0d0d0d;border-bottom:1px solid #1a1a1a;padding:0 6px;display:flex;align-items:center;font-size:9px;color:#ff8c00;font-weight:700;letter-spacing:.5px;text-transform:uppercase;flex-shrink:0;white-space:nowrap}
-.p-h span{margin-left:auto;color:#444;font-weight:400;text-transform:none;font-size:9px}
-.p-b{flex:1;overflow-y:auto;overflow-x:hidden}
-.p-b::-webkit-scrollbar{width:0}
+/* ════ PANELS ════ */
+.P{background:#151518;border:1px solid #252530;display:flex;flex-direction:column;overflow:hidden;min-width:0;min-height:0}
+.P-h{height:24px;background:#1c1c21;border-bottom:1px solid #252530;padding:0 10px;display:flex;align-items:center;font-size:11px;color:#5a5a6a;letter-spacing:1px;text-transform:uppercase;flex-shrink:0}
+.P-h span{margin-left:auto;color:#3a3a44;font-size:10px;letter-spacing:0;text-transform:none}
+.P-b{flex:1;overflow-y:auto;overflow-x:hidden}
+.P-b::-webkit-scrollbar{width:3px}
+.P-b::-webkit-scrollbar-track{background:#151518}
+.P-b::-webkit-scrollbar-thumb{background:#252530}
 
-/* tables */
+/* ════ LEFT COLUMN ════ */
+.left{display:flex;flex-direction:column}
+
+/* ════ CENTER COLUMN ════ */
+.center{display:flex;flex-direction:column;border-left:1px solid #252530;border-right:1px solid #252530}
+
+/* ════ RIGHT COLUMN ════ */
+.right{display:flex;flex-direction:column}
+
+/* ════ TABLE ════ */
 table{width:100%;border-collapse:collapse}
-th{text-align:left;padding:1px 4px;color:#444;font-weight:400;font-size:9px;border-bottom:1px solid #151515;position:sticky;top:0;background:#0d0d0d}
-td{padding:1px 4px;border-bottom:1px solid #0a0a0a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+th{text-align:left;padding:3px 8px;color:#5a5a6a;font-weight:400;font-size:10px;letter-spacing:.5px;border-bottom:1px solid #252530;position:sticky;top:0;background:#1c1c21;text-transform:uppercase}
+td{padding:3px 8px;border-bottom:1px solid #1a1a1f;height:22px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
+tr:hover td{background:#1c1c21}
 
-/* utility */
-.g{color:#0f0}.r{color:#f33}.w{color:#fff}.d{color:#555}.a{color:#ff8c00}
-.dot{display:inline-block;width:5px;height:5px;margin-right:3px;vertical-align:middle}
-.dot.on{background:#0f0}.dot.off{background:#f33}
-.kv{display:flex;justify-content:space-between;padding:1px 4px}
-.kv .k{color:#555}.kv .v{color:#fff}
-.feed{padding:1px 4px;border-bottom:1px solid #0a0a0a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cmd{padding:4px;display:flex;flex-wrap:wrap;gap:3px}
-.btn{font:inherit;font-size:10px;padding:2px 6px;background:#000;border:1px solid #1a1a1a;color:#ff8c00;cursor:pointer;border-radius:0}
-.btn:hover{border-color:#ff8c00}
+/* ════ COMPONENTS ════ */
+.dot{display:inline-block;width:6px;height:6px;vertical-align:middle;margin-right:4px;border-radius:0}
+.dot-on{background:#26a65b;animation:pulse 2s ease infinite}
+.dot-off{background:#e84855}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 
-/* chart panels need no scroll */
-.p-chart{padding:3px 6px}
+.feed-ln{padding:2px 8px;border-bottom:1px solid #1a1a1f;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.feed-ln:hover{background:#1c1c21}
 
-/* span helpers */
-.c2{grid-column:span 2}
+.tier-bar{display:flex;align-items:center;gap:6px;padding:4px 8px}
+.tier-label{width:44px;font-size:11px;font-weight:700;text-align:right}
+.tier-track{flex:1;height:10px;background:#1a1a1f;overflow:hidden}
+.tier-fill{height:100%;transition:width .3s}
+.tier-info{width:70px;font-size:10px;color:#5a5a6a;text-align:right}
+
+.kv{display:flex;justify-content:space-between;padding:2px 8px;font-size:11px}
+.kv .k{color:#5a5a6a}.kv .v{color:#d1d1d6}
+
+.btn-row{display:flex;gap:4px;padding:6px 8px;flex-wrap:wrap}
+.btn{font:inherit;font-size:11px;padding:4px 10px;background:#151518;border:1px solid #ff9933;color:#ff9933;cursor:pointer;border-radius:0;letter-spacing:.5px}
+.btn:hover{background:#ff9933;color:#0e0e10}
+.btn.busy{opacity:.4;pointer-events:none}
+
+/* latest output under agent list */
+.ag-out{padding:3px 8px;font-size:10px;border-bottom:1px solid #1a1a1f;line-height:1.3}
+.ag-out .nm{color:#ff9933;font-size:10px}
+.ag-out .tx{color:#5a5a6a;display:inline}
 </style>
 </head>
 <body>
+
 <div class="root">
 
-<!-- ROW 0: TOPBAR -->
-<div class="topbar">
-  <span class="logo">▓▓ ICARUS ▓▓</span>
-  <span class="sep">│</span>
-  <span class="kv">AGENTS <b id="sAg"></b></span>
-  <span class="sep">│</span>
-  <span class="kv">CYCLES <b id="sCy"></b></span>
-  <span class="sep">│</span>
-  <span class="kv">ENTRIES <b id="sEn"></b></span>
-  <span class="sep">│</span>
-  <span class="kv">HOT <b class="a" id="sHot"></b></span>
-  <span class="kv">WRM <b style="color:#a08520" id="sWrm"></b></span>
-  <span class="kv">CLD <b style="color:#4080c0" id="sCld"></b></span>
-  <span class="sep">│</span>
-  <span class="kv">BRAIN <b id="sBr"></b></span>
-  <span class="sep">│</span>
-  <span class="kv">UP <b id="sUp"></b></span>
-  <span class="live" id="sLive">● LIVE</span>
-  <span class="clock" id="sClock"></span>
+<!-- ════ HEADER ════ -->
+<div class="hdr">
+<pre class="hdr-ascii">██▓ ▄████▄   ▄▄▄       ██▀███   █    ██   ██████
+▓██▒▒██▀ ▀█  ▒████▄    ▓██ ▒ ██▒ ██  ▓██▒▒██    ▒
+▒██▒▒▓█    ▄ ▒██  ▀█▄  ▓██ ░▄█ ▒▓██  ▒██░░ ▓██▄
+░██░▒▓▓▄ ▄██▒░██▄▄▄▄██ ▒██▀▀█▄  ▓▓█  ░██░  ▒   ██▒
+░██░▒ ▓███▀ ░ ▓█   ▓██▒░██▓ ▒██▒▒▒█████▓ ▒██████▒▒</pre>
+  <div class="hdr-stats">
+    <span class="k">AGENTS</span><span class="v" id="sAg">--</span><span class="sep">│</span>
+    <span class="k">CYCLES</span><span class="v" id="sCy">--</span><span class="sep">│</span>
+    <span class="k">MEMORY</span><span class="v" id="sEn">--</span><span class="k">entries</span><span class="sep">│</span>
+    <span class="k">BRAIN</span><span class="v" id="sBr">--</span><span class="sep">│</span>
+    <span class="k">HOT</span><span class="v" id="sH">--</span>
+    <span class="k">WARM</span><span class="v" style="color:#eab308" id="sW">--</span>
+    <span class="k">COLD</span><span class="v" style="color:#4a90d9" id="sC">--</span><span class="sep">│</span>
+    <span class="k">UPTIME</span><span class="v" id="sUp">--</span>
+  </div>
+  <div class="hdr-right">
+    <span class="hdr-live" id="hLive">● LIVE</span>
+    <span class="hdr-clock" id="hClock"></span>
+  </div>
 </div>
 
-<!-- ROW 0: TICKER -->
+<!-- ════ TICKER ════ -->
 <div class="ticker" id="ticker"></div>
 
-<!-- ROW 1 -->
-<div class="p"><div class="p-h">agents<span id="hAg"></span></div><div class="p-b"><table><thead><tr><th></th><th>name</th><th>role</th><th>plat</th><th>st</th><th>last</th></tr></thead><tbody id="tAg"></tbody></table></div></div>
+<!-- ════ LEFT: AGENT FLEET ════ -->
+<div class="P left">
+  <div class="P-h">agent fleet<span id="hNag"></span></div>
+  <div class="P-b">
+    <table><thead><tr><th></th><th>name</th><th>role</th><th>plat</th><th>entries</th><th>last</th></tr></thead><tbody id="tAg"></tbody></table>
+    <div id="agOut"></div>
+  </div>
+</div>
 
-<div class="p"><div class="p-h">memory feed<span id="hFd"></span></div><div class="p-b" id="bFd"></div></div>
+<!-- ════ CENTER TOP: LIVE FEED ════ -->
+<div class="P center" style="flex:1">
+  <div class="P-h">live feed<span id="hNfd"></span></div>
+  <div class="P-b" id="bFeed"></div>
+</div>
 
-<div class="p"><div class="p-h">last cycle<span id="hCy"></span></div><div class="p-b" id="bCy"></div></div>
+<!-- ════ CENTER BOTTOM: TIMELINE ════ -->
+<div class="P center" style="flex:1;border-top:none">
+  <div class="P-h">memory timeline<span>14 days</span></div>
+  <div class="P-b" style="padding:6px 10px"><canvas id="cTimeline"></canvas></div>
+</div>
 
-<div class="p"><div class="p-h">system</div><div class="p-b" id="bSys"></div></div>
+<!-- ════ RIGHT TOP: TIERS ════ -->
+<div class="P right" style="flex:1">
+  <div class="P-h">tier status</div>
+  <div class="P-b">
+    <div id="bTiers"></div>
+    <div style="padding:4px 8px;border-top:1px solid #252530"><canvas id="cPlat" style="max-height:110px"></canvas></div>
+  </div>
+</div>
 
-<!-- ROW 2 -->
-<div class="p c2"><div class="p-h">entries / 14 days<span id="hTl"></span></div><div class="p-b p-chart"><canvas id="cTl"></canvas></div></div>
+<!-- ════ RIGHT BOTTOM: SYSTEM ════ -->
+<div class="P right" style="flex:1;border-top:none">
+  <div class="P-h">system<span id="hClockSmall"></span></div>
+  <div class="P-b">
+    <div style="display:grid;grid-template-columns:1fr 1fr" id="bSys"></div>
+    <div class="btn-row" id="bBtns">
+      <button class="btn" onclick="act('cycle',this)">[RUN CYCLE]</button>
+      <button class="btn" onclick="act('compact',this)">[COMPACT]</button>
+      <button class="btn" onclick="addA()">[ADD AGENT]</button>
+      <button class="btn" onclick="act('sync',this)">[SYNC]</button>
+    </div>
+  </div>
+</div>
 
-<div class="p"><div class="p-h">tiers</div><div class="p-b p-chart"><canvas id="cTr"></canvas><div id="bTrS" style="margin-top:2px"></div></div></div>
-
-<div class="p"><div class="p-h">platforms</div><div class="p-b p-chart"><canvas id="cPl"></canvas></div></div>
-
-<!-- ROW 3 -->
-<div class="p"><div class="p-h">compaction<span id="hCo"></span></div><div class="p-b"><table><thead><tr><th>time</th><th>detail</th><th>st</th></tr></thead><tbody id="tCo"></tbody></table></div></div>
-
-<div class="p"><div class="p-h">performance</div><div class="p-b"><table><thead><tr><th>agent</th><th>entries</th><th>avg</th><th>plats</th><th>cycles</th></tr></thead><tbody id="tPf"></tbody></table></div></div>
-
-<div class="p"><div class="p-h">cross-platform</div><div class="p-b" id="bXp"></div></div>
-
-<div class="p"><div class="p-h">commands</div><div class="p-b"><div class="cmd">
-  <button class="btn" onclick="act('cycle',this)">[F1 RUN CYCLE]</button>
-  <button class="btn" onclick="addA()">[F2 ADD AGENT]</button>
-  <button class="btn" onclick="act('compact',this)">[F3 COMPACT]</button>
-  <button class="btn" onclick="act('sync',this)">[F4 SYNC]</button>
-</div><div id="bLog" style="font-size:9px;color:#333;padding:4px;border-top:1px solid #1a1a1a;max-height:120px;overflow-y:auto"></div></div></div>
-
-</div><!-- /root -->
+</div>
 
 <script>
 var CH={},D;
-var AC={},CP=['#ff8c00','#4488cc','#33aa55','#aa44cc','#cc4444','#aaaa33','#33aaaa','#cc6622'];
+var AC={},CP=['#ff9933','#4a90d9','#26a65b','#e84855','#9b59b6','#eab308','#2eaaaa','#cc5533'];
 function $(id){return document.getElementById(id)}
 function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML}
 function ago(t){if(!t)return'--';try{var d=new Date(t.replace(' UTC',':00Z').replace(' ','T')),m=Math.floor((Date.now()-d)/6e4);return m<1?'<1m':m<60?m+'m':m<1440?Math.floor(m/60)+'h':Math.floor(m/1440)+'d'}catch(e){return'--'}}
 function ac(n){if(!AC[n])AC[n]=CP[Object.keys(AC).length%CP.length];return AC[n]}
-function kb(b){return(b/1024).toFixed(1)+'K'}
-function pa(p){return{telegram:'TGM',discord:'DSC',slack:'SLK',whatsapp:'WHA',signal:'SIG',email:'EML',cli:'CLI','slack-wh':'SWH',dialogue:'DLG',multi:'MUL'}[p]||(p||'--').slice(0,3).toUpperCase()}
-function pc(p){return{telegram:'#229ED9',discord:'#5865F2',slack:'#611f69',whatsapp:'#25D366',signal:'#3A76F0',email:'#888',cli:'#aaa',dialogue:'#ff8c00'}[p]||'#666'}
-function up(s){var h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h+'h'+m+'m'}
+function kb(b){return(b/1024).toFixed(1)+'KB'}
+function pa(p){return{telegram:'TGM',discord:'DSC',slack:'SLK',whatsapp:'WHA',signal:'SIG',email:'EML',cli:'CLI'}[p]||(p||'?').slice(0,3).toUpperCase()}
+function pc(p){return{telegram:'#229ED9',discord:'#5865F2',slack:'#611f69',whatsapp:'#25D366',signal:'#3A76F0',email:'#888',cli:'#aaa',dialogue:'#ff9933'}[p]||'#5a5a6a'}
+function up(s){var h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h+'h '+m+'m'}
+function pct(n,t){return t>0?Math.round(n/t*100)+'%':'0%'}
 
 function render(d){
   D=d;var s=d.stats;
-  // topbar
+
+  // header stats
   $('sAg').textContent=s.activeAgents+'/'+s.totalAgents;
   $('sCy').textContent=s.totalCycles;
   $('sEn').textContent=s.totalEntries;
-  $('sHot').textContent=s.hot;
-  $('sWrm').textContent=s.warm;
-  $('sCld').textContent=s.cold;
   $('sBr').textContent=kb(s.brainSize);
+  $('sH').textContent=s.hot;$('sW').textContent=s.warm;$('sC').textContent=s.cold;
   $('sUp').textContent=up(s.uptime);
+  $('hNag').textContent=s.totalAgents+' agents';
+  $('hNfd').textContent=d.entries.length+' entries';
 
   // ticker
-  var tk='';(d.ticker||[]).forEach(function(t){tk+='<em>'+ago(t.time)+'</em> '+esc(t.text)+'  │  '});
-  // add last cron entries
-  (d.cronTail||[]).slice(-2).forEach(function(l){tk+='<em>log</em> '+esc(l.slice(0,60))+'  │  '});
-  $('ticker').innerHTML=tk||'<span style="color:#333">NO EVENTS</span>';
+  var tk='';(d.ticker||[]).forEach(function(t){tk+='<b>'+ago(t.time)+'</b> '+esc(t.text)+' │ '});
+  (d.cronTail||[]).slice(-3).forEach(function(l){if(l.trim())tk+='<b>log</b> '+esc(l.trim().slice(0,50))+' │ '});
+  $('ticker').innerHTML=tk||'<span style="color:#3a3a44">waiting for events...</span>';
 
-  // panel headers
-  $('hAg').textContent=s.totalAgents;
-  $('hFd').textContent=d.entries.length;
-  $('hCy').textContent='#'+s.totalCycles;
-  $('hCo').textContent=d.compaction.length;
-  $('hTl').textContent=Object.keys(d.timeline).length+'d';
-
-  // AGENT TABLE
+  // ════ AGENT TABLE ════
   var h='';d.agents.forEach(function(a){
-    var c=ac(a.name),pl=a.platforms.map(function(p){return pa(p.name)}).join('/');
-    var st=a.online?'RUN':a.cycles.length?'IDLE':'OFF';
-    var sc=a.online?'g':a.cycles.length?'a':'r';
-    h+='<tr><td><span class="dot '+(a.online?'on':'off')+'"></span></td>'
-      +'<td style="color:'+c+'">'+esc(a.name)+'</td>'
-      +'<td class="d" style="max-width:100px">'+esc((a.role||'').slice(0,22))+'</td>'
-      +'<td class="d">'+pl+'</td>'
-      +'<td class="'+sc+'">'+st+'</td>'
-      +'<td class="d">'+ago(a.lastActive)+'</td></tr>';
+    var c=ac(a.name);
+    var plBadges=a.platforms.map(function(p){
+      return'<span style="display:inline-block;width:8px;height:8px;background:'+pc(p.name)+';margin-right:2px;vertical-align:middle" title="'+p.name+'"></span>';
+    }).join('');
+    h+='<tr>'
+      +'<td><span class="dot dot-'+(a.online?'on':'off')+'"></span></td>'
+      +'<td style="color:'+c+';font-weight:500">'+esc(a.name)+'</td>'
+      +'<td style="color:#5a5a6a;max-width:100px">'+esc((a.role||'').slice(0,24))+'</td>'
+      +'<td>'+plBadges+'</td>'
+      +'<td style="color:#d1d1d6;text-align:right">'+a.totalEntries+'</td>'
+      +'<td style="color:#5a5a6a;text-align:right">'+ago(a.lastActive)+'</td>'
+      +'</tr>';
   });$('tAg').innerHTML=h;
 
-  // MEMORY FEED
-  h='';d.entries.slice(0,25).forEach(function(e){
-    h+='<div class="feed"><span class="d">'+(e.timestamp?e.timestamp.slice(11,19):'--:--:--')+'</span> <span style="color:'+ac(e.agent)+'">'+esc(e.agent)+'</span> <span style="color:#333">'+pa(e.platform)+'</span> <span style="color:#888">'+esc((e.summary||e.body||'').slice(0,70))+'</span></div>';
-  });$('bFd').innerHTML=h||'<div class="feed d">NO ENTRIES</div>';
-
-  // CYCLE OUTPUT
+  // agent latest output
   h='';d.feed.forEach(function(f){
-    h+='<div style="padding:3px 4px;border-bottom:1px solid #0a0a0a">'
-      +'<span style="color:'+ac(f.agent)+';font-weight:700">'+esc(f.agent)+'</span> <span class="d">#'+f.cycle+'</span>'
-      +'<div style="color:#999;margin-top:1px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">'+esc(f.thought||f.response||'')+'</div></div>';
-  });$('bCy').innerHTML=h||'<div class="feed d">NO CYCLES</div>';
+    h+='<div class="ag-out"><span class="nm">'+esc(f.agent)+'</span> <span class="tx">'+esc((f.thought||f.response||'').slice(0,120))+'</span></div>';
+  });$('agOut').innerHTML=h;
 
-  // SYSTEM
-  h='';[
-    ['uptime',up(s.uptime)],['brain',kb(s.brainSize)],['entries',''+s.totalEntries],
-    ['today',''+s.entriesToday],['hot/wrm/cld',s.hot+'/'+s.warm+'/'+s.cold],
-    ['agents',s.activeAgents+'/'+s.totalAgents],['platforms',''+s.platforms.length],
-    ['gateways',s.activeAgents+' running'],
-  ].forEach(function(r){h+='<div class="kv"><span class="k">'+r[0]+'</span><span class="v">'+r[1]+'</span></div>'});
+  // ════ LIVE FEED ════
+  h='';d.entries.slice(0,50).forEach(function(e){
+    var ts=e.timestamp?e.timestamp.slice(11,19):'--:--:--';
+    h+='<div class="feed-ln">'
+      +'<span style="color:#3a3a44">'+ts+'</span> '
+      +'<span style="color:'+ac(e.agent)+'">'+esc(e.agent)+'</span> '
+      +'<span style="display:inline-block;width:8px;height:8px;background:'+pc(e.platform)+';vertical-align:middle;margin:0 3px" title="'+esc(e.platform)+'"></span>'
+      +'<span style="color:#3a3a44">→</span> '
+      +'<span style="color:#8a8a94">'+esc((e.summary||e.body||'').slice(0,90))+'</span>'
+      +'</div>';
+  });$('bFeed').innerHTML=h||'<div class="feed-ln" style="color:#3a3a44">no entries yet</div>';
+
+  // ════ TIERS ════
+  var total=Math.max(s.hot+s.warm+s.cold,1);
+  h='';
+  [['HOT',s.hot,'#ff9933'],['WARM',s.warm,'#eab308'],['COLD',s.cold,'#4a90d9']].forEach(function(r){
+    h+='<div class="tier-bar">'
+      +'<div class="tier-label" style="color:'+r[2]+'">'+r[0]+'</div>'
+      +'<div class="tier-track"><div class="tier-fill" style="width:'+pct(r[1],total)+';background:'+r[2]+'"></div></div>'
+      +'<div class="tier-info">'+r[1]+' ('+pct(r[1],total)+')</div>'
+      +'</div>';
+  });
+  h+='<div style="padding:3px 8px;font-size:10px;color:#5a5a6a;border-bottom:1px solid #252530">total: '+s.totalEntries+' entries │ avg: '+(s.totalEntries>0?Math.round(s.brainSize/s.totalEntries)+'B':'--')+' │ brain: '+kb(s.brainSize)+'</div>';
+  $('bTiers').innerHTML=h;
+
+  // ════ SYSTEM ════
+  h='<div style="padding:2px">';
+  [['last cycle',d.lastCycleTs?ago(d.lastCycleTs):'--'],['compactions',''+d.compaction.length],['fabric size',kb(s.brainSize)],['entries today',''+s.entriesToday]].forEach(function(r){
+    h+='<div class="kv"><span class="k">'+r[0]+'</span><span class="v">'+r[1]+'</span></div>';
+  });
+  h+='</div><div style="padding:2px">';
+  [['platforms',''+s.platforms.length],['gateways',s.activeAgents+'/'+s.totalAgents],['uptime',up(s.uptime)],['cron',d.cronTail&&d.cronTail.length>0?'active':'--']].forEach(function(r){
+    h+='<div class="kv"><span class="k">'+r[0]+'</span><span class="v">'+r[1]+'</span></div>';
+  });
+  h+='</div>';
   $('bSys').innerHTML=h;
 
-  // COMPACTION
-  h='';if(d.compaction.length){d.compaction.forEach(function(c){
-    h+='<tr><td class="d">'+esc((c.timestamp||'').slice(0,16))+'</td><td class="d" style="max-width:200px">'+c.details.map(esc).join(' ')+'</td><td class="g">OK</td></tr>';
-  })}else h='<tr><td colspan="3" class="d">no compaction events</td></tr>';
-  $('tCo').innerHTML=h;
-
-  // PERFORMANCE
-  h='';d.agents.forEach(function(a){
-    h+='<tr><td style="color:'+ac(a.name)+'">'+esc(a.name)+'</td>'
-      +'<td class="w">'+a.totalEntries+'</td>'
-      +'<td class="w">'+a.avgLen+'</td>'
-      +'<td class="d">'+a.platforms.length+'</td>'
-      +'<td class="w">'+a.cycles.length+'</td></tr>';
-  });$('tPf').innerHTML=h;
-
-  // CROSS-PLATFORM
-  h='';var seen={};
-  d.entries.forEach(function(e){if(!e.platform)return;
-    d.entries.forEach(function(e2){if(!e2.platform)return;
-      if(e.agent===e2.agent&&e.platform!==e2.platform){
-        var k=e.agent+e.platform+e2.platform;if(seen[k])return;seen[k]=1;
-        h+='<div class="feed"><span class="g">'+pa(e.platform)+':'+esc(e.agent)+'</span>'
-          +' <span class="d">↔</span> '
-          +'<span style="color:#4488cc">'+pa(e2.platform)+':'+esc(e2.agent)+'</span>'
-          +' <span class="d">'+ago(e2.timestamp)+'</span></div>';
-      }
-    });
-  });
-  $('bXp').innerHTML=h||'<div class="feed d">no cross-platform recalls yet</div>';
-
-  // TIER STATS
-  $('bTrS').innerHTML='<div class="kv"><span class="k">total</span><span class="v">'+s.totalEntries+'</span></div>'
-    +'<div class="kv"><span class="k">avg size</span><span class="v">'+(s.totalEntries?Math.round(s.brainSize/s.totalEntries)+'B':'--')+'</span></div>';
-
-  // CRON LOG in commands panel
-  h='';(d.cronTail||[]).slice(-8).forEach(function(l){h+='<div>'+esc(l.slice(0,80))+'</div>'});
-  $('bLog').innerHTML=h;
-
-  // CHARTS
-  charts(d);
+  // ════ CHARTS ════
+  renderCharts(d);
 }
 
-function charts(d){
+function renderCharts(d){
   var s=d.stats;
   var days=Object.keys(d.timeline).sort();
   var names=d.agents.map(function(a){return a.name});
 
-  // TIMELINE
+  // timeline
   var ds=names.map(function(n){return{
     label:n,data:days.map(function(dy){return d.timeline[dy][n]||0}),
-    borderColor:ac(n),backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:.3
+    borderColor:ac(n),backgroundColor:'transparent',borderWidth:1.5,pointRadius:2,pointBackgroundColor:ac(n),tension:.3
   }});
-  var tlCfg={type:'line',data:{labels:days.map(function(d){return d.slice(5)}),datasets:ds},options:{
+  var cfg={type:'line',data:{labels:days.map(function(d){return d.slice(5)}),datasets:ds},options:{
     responsive:true,maintainAspectRatio:false,animation:false,
-    plugins:{legend:{display:true,position:'top',labels:{color:'#666',font:{family:'JetBrains Mono',size:9},boxWidth:8,padding:4}}},
-    scales:{x:{grid:{color:'#151515',drawBorder:false},ticks:{color:'#444',font:{family:'JetBrains Mono',size:8},maxRotation:0}},
-            y:{grid:{color:'#151515',drawBorder:false},ticks:{color:'#444',font:{family:'JetBrains Mono',size:8}},beginAtZero:true}}
+    plugins:{legend:{display:false},tooltip:{titleFont:{family:'JetBrains Mono'},bodyFont:{family:'JetBrains Mono'}}},
+    scales:{
+      x:{grid:{color:'#252530',drawBorder:false},ticks:{color:'#5a5a6a',font:{family:'JetBrains Mono',size:9},maxRotation:0}},
+      y:{grid:{color:'#252530',drawBorder:false},ticks:{color:'#5a5a6a',font:{family:'JetBrains Mono',size:9}},beginAtZero:true}
+    }
   }};
-  if(CH.tl){CH.tl.data=tlCfg.data;CH.tl.update()}else CH.tl=new Chart($('cTl'),tlCfg);
+  if(CH.tl){CH.tl.data=cfg.data;CH.tl.update()}else CH.tl=new Chart($('cTimeline'),cfg);
 
-  // TIERS
-  var trCfg={type:'bar',data:{labels:['HOT','WARM','COLD'],datasets:[{data:[s.hot,s.warm,s.cold],backgroundColor:['#ff8c00','#a08520','#4080c0'],borderWidth:0,barThickness:12}]},options:{
-    indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:false,
-    plugins:{legend:{display:false}},
-    scales:{x:{grid:{color:'#151515',drawBorder:false},ticks:{color:'#444',font:{family:'JetBrains Mono',size:8}}},
-            y:{grid:{display:false},ticks:{color:'#ff8c00',font:{family:'JetBrains Mono',size:9,weight:'bold'}}}}
-  }};
-  if(CH.tr){CH.tr.data=trCfg.data;CH.tr.update()}else CH.tr=new Chart($('cTr'),trCfg);
-
-  // PLATFORMS
+  // platform doughnut
   var pl=Object.keys(d.platDist||{}),pv=pl.map(function(l){return d.platDist[l]}),pcl=pl.map(pc);
-  var plCfg={type:'doughnut',data:{labels:pl,datasets:[{data:pv,backgroundColor:pcl,borderWidth:0}]},options:{
-    responsive:true,maintainAspectRatio:false,animation:false,cutout:'60%',
-    plugins:{legend:{position:'right',labels:{color:'#666',font:{family:'JetBrains Mono',size:9},boxWidth:8,padding:4}}}
+  var pcfg={type:'doughnut',data:{labels:pl,datasets:[{data:pv,backgroundColor:pcl,borderWidth:0}]},options:{
+    responsive:true,maintainAspectRatio:false,animation:false,cutout:'55%',
+    plugins:{legend:{display:false},tooltip:{titleFont:{family:'JetBrains Mono'},bodyFont:{family:'JetBrains Mono'}}}
   }};
-  if(CH.pl){CH.pl.data=plCfg.data;CH.pl.update()}else CH.pl=new Chart($('cPl'),plCfg);
+  if(CH.pl){CH.pl.data=pcfg.data;CH.pl.update()}else CH.pl=new Chart($('cPlat'),pcfg);
 }
 
-// ACTIONS
+// actions
 function act(n,btn){
-  if(btn){var orig=btn.textContent;btn.textContent='[RUNNING...]';btn.style.color='#555';
-    setTimeout(function(){btn.textContent=orig;btn.style.color=''},4000)}
+  if(btn){btn.classList.add('busy');btn.textContent='[RUNNING...]';
+    setTimeout(function(){btn.classList.remove('busy');btn.textContent='['+n.toUpperCase()+']'},4000)}
   fetch('/api/'+n,{method:'POST'});
 }
-function addA(){
-  var n=prompt('agent name:'),r=prompt('role:');
-  if(n&&r)fetch('/api/agent',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,role:r})}).then(function(){location.reload()});
-}
+function addA(){var n=prompt('Agent name:'),r=prompt('Role:');if(n&&r)fetch('/api/agent',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,role:r})}).then(function(){location.reload()})}
 
-// KEYBOARD
+// keyboard
 document.addEventListener('keydown',function(e){
-  if(e.key==='F1'){e.preventDefault();act('cycle')}
-  if(e.key==='F2'){e.preventDefault();addA()}
+  if(e.key==='F1'){e.preventDefault();act('cycle',document.querySelector('.btn'))}
   if(e.key==='F3'){e.preventDefault();act('compact')}
   if(e.key==='F4'){e.preventDefault();act('sync')}
 });
 
-// CLOCK
-setInterval(function(){$('sClock').textContent=new Date().toISOString().slice(11,19)+' UTC';if(D)D.stats.uptime++},1000);
+// clock
+function tick(){
+  var t=new Date().toISOString().slice(11,19)+' UTC';
+  $('hClock').textContent=t;$('hClockSmall').textContent=t;
+  if(D)D.stats.uptime++;
+}
+tick();setInterval(tick,1000);
 
-// DATA
+// data
 fetch('/api/data').then(function(r){return r.json()}).then(render);
 var sse=new EventSource('/api/events');
 sse.onmessage=function(e){render(JSON.parse(e.data))};
-sse.onerror=function(){$('sLive').textContent='● DISCONNECTED';$('sLive').style.color='#f33'};
-sse.onopen=function(){$('sLive').textContent='● LIVE';$('sLive').style.color='#0f0'};
+sse.onerror=function(){$('hLive').textContent='● OFFLINE';$('hLive').style.color='#e84855'};
+sse.onopen=function(){$('hLive').textContent='● LIVE';$('hLive').style.color='#26a65b'};
 </script>
 </body>
 </html>
