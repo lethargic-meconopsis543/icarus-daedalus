@@ -518,6 +518,12 @@ st_out=$(TOGETHER_API_KEY="fake" TOGETHER_LR=0 bash "$SCRIPT_DIR/scripts/self-tr
 echo "$st_out" | grep -q "TOGETHER_LR.*must be > 0" && pass "self-train rejects zero learning_rate" || fail "self-train accepts zero lr"
 
 echo ""
+echo "retrieval evals"
+echo ""
+
+python3 "$SCRIPT_DIR/eval-retrieval.py" 2>&1 || fail "retrieval eval regressions"
+
+echo ""
 echo "together.jsonl format"
 echo ""
 

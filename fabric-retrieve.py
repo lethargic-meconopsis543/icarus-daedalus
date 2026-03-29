@@ -95,14 +95,21 @@ def score_entry(entry, query_tokens, agent=None, project=None, relevant_refs=Non
 
     score = 0.0
 
-    # 1. Keyword match
+    # 1. Keyword match (body + summary)
     keyword_hits = len(query_tokens & entry_tokens)
-    score += keyword_hits * 2
+    score += keyword_hits * 5  # keywords are the primary signal
 
-    # 2. Same project
+    # 1b. Tag match (tags are high-signal metadata)
     entry_tags = entry.get("tags", [])
     if isinstance(entry_tags, str):
         entry_tags = [entry_tags]
+    tag_tokens = set()
+    for t in entry_tags:
+        tag_tokens.update(re.findall(r'[a-z0-9]+', str(t).lower()))
+    tag_hits = len(query_tokens & tag_tokens)
+    score += tag_hits * 4
+
+    # 2. Same project
     entry_project = entry.get("project", "")
     if project:
         project_lower = project.lower()
@@ -115,23 +122,23 @@ def score_entry(entry, query_tokens, agent=None, project=None, relevant_refs=Non
     if agent and entry.get("agent") == agent:
         score += 5
 
-    # 4. Recency
+    # 4. Recency (secondary signal, should not override keyword match)
     hours = age_hours(entry.get("timestamp"))
     if hours < 1:
-        score += 10
-    elif hours < 24:
-        score += 8
-    elif hours < 168:  # 1 week
         score += 4
+    elif hours < 24:
+        score += 3
+    elif hours < 168:  # 1 week
+        score += 2
     elif hours < 720:  # 1 month
         score += 1
 
-    # 5. Tier boost
+    # 5. Tier boost (light touch)
     tier = entry.get("tier", "")
     if tier == "hot":
-        score += 5
-    elif tier == "warm":
         score += 2
+    elif tier == "warm":
+        score += 1
 
     # 6. Type match
     entry_type = entry.get("type", "")
