@@ -15,9 +15,17 @@ PROJECT=$(basename "$CWD" 2>/dev/null || echo "")
 
 [ -d "$FABRIC_DIR" ] || exit 0
 
-# Use smart retrieval with project name as query
+# Use smart retrieval with project name + any additional context
 if [ -f "$REPO_DIR/fabric-retrieve.py" ] && [ -n "$PROJECT" ]; then
-    CONTEXT=$(FABRIC_DIR="$FABRIC_DIR" python3 "$REPO_DIR/fabric-retrieve.py" "$PROJECT" \
+    # Combine project name with recent work description for a richer query
+    QUERY="$PROJECT"
+    # Check if there's a CLAUDE.md or README in the project for additional signal
+    if [ -f "$CWD/CLAUDE.md" ]; then
+        QUERY="$QUERY $(head -5 "$CWD/CLAUDE.md" | tr '\n' ' ')"
+    elif [ -f "$CWD/README.md" ]; then
+        QUERY="$QUERY $(head -3 "$CWD/README.md" | tr '\n' ' ')"
+    fi
+    CONTEXT=$(FABRIC_DIR="$FABRIC_DIR" python3 "$REPO_DIR/fabric-retrieve.py" "$QUERY" \
         --max-results 5 --max-tokens 1500 --project "$PROJECT" 2>/dev/null || true)
     if [ -n "$CONTEXT" ] && [ "$CONTEXT" != "no relevant entries found" ]; then
         echo "Recent relevant work from fabric memory:"

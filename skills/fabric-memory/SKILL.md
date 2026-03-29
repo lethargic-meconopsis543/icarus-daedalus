@@ -2,6 +2,16 @@
 
 You have access to a shared memory system called the Icarus Memory Protocol. It stores memories as markdown files in ~/fabric/. Other agents on other platforms can read what you write. You can read what they wrote.
 
+## Finding the icarus repo
+
+Before running any command, find the repo location. It may not be at ~/icarus-daedalus:
+
+```bash
+ICARUS_DIR=$(find ~ -maxdepth 3 -name "fabric-adapter.sh" -path "*/icarus*" 2>/dev/null | head -1 | xargs dirname)
+```
+
+Use `$ICARUS_DIR` in all commands below instead of a hardcoded path. If the repo isn't found, the fabric-adapter.sh and fabric-retrieve.py commands won't work, but ~/fabric/ can still be read directly.
+
 ## When to write
 
 After completing any task worth remembering:

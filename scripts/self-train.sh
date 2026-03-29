@@ -83,6 +83,31 @@ assert_http() {
     fi
 }
 
+# ── Preflight: validate training params early ──
+FT_MODEL="${TOGETHER_MODEL:-Qwen/Qwen2-7B-Instruct}"
+FT_EPOCHS="${TOGETHER_EPOCHS:-3}"
+FT_BATCH="${TOGETHER_BATCH_SIZE:-8}"
+FT_LR="${TOGETHER_LR:-1e-5}"
+FT_CHECKPOINTS="${TOGETHER_CHECKPOINTS:-1}"
+FT_SUFFIX="${TOGETHER_SUFFIX:-icarus-v1}"
+
+if [ -z "$FT_MODEL" ]; then
+    echo "error: TOGETHER_MODEL is empty"
+    exit 1
+fi
+python3 -c "
+import sys
+epochs, batch, lr, ckpts = int(sys.argv[1]), int(sys.argv[2]), float(sys.argv[3]), int(sys.argv[4])
+errors = []
+if epochs < 1: errors.append(f'TOGETHER_EPOCHS={epochs} must be >= 1')
+if batch < 8: errors.append(f'TOGETHER_BATCH_SIZE={batch} must be >= 8')
+if lr <= 0: errors.append(f'TOGETHER_LR={lr} must be > 0')
+if ckpts < 1: errors.append(f'TOGETHER_CHECKPOINTS={ckpts} must be >= 1')
+if errors:
+    for e in errors: print(f'error: {e}')
+    sys.exit(1)
+" "$FT_EPOCHS" "$FT_BATCH" "$FT_LR" "$FT_CHECKPOINTS" || exit 1
+
 # ── Step 1: Export ──
 echo "step 1: exporting training data..."
 EXPORT_OUTPUT=$(python3 "$REPO_DIR/export-training.py" --output "$OUTPUT_DIR" 2>&1)
@@ -167,20 +192,6 @@ echo "uploaded: $FILE_ID"
 # ── Step 4: Fine-tune ──
 echo ""
 echo "step 4: starting fine-tune..."
-
-FT_MODEL="${TOGETHER_MODEL:-Qwen/Qwen2-7B-Instruct}"
-FT_EPOCHS="${TOGETHER_EPOCHS:-3}"
-FT_BATCH="${TOGETHER_BATCH_SIZE:-8}"
-FT_LR="${TOGETHER_LR:-1e-5}"
-FT_CHECKPOINTS="${TOGETHER_CHECKPOINTS:-1}"
-FT_SUFFIX="${TOGETHER_SUFFIX:-icarus-v1}"
-
-# Preflight: reject empty or known-bad models
-if [ -z "$FT_MODEL" ]; then
-    echo "error: TOGETHER_MODEL is empty"
-    exit 1
-fi
-
 echo "  model:        $FT_MODEL"
 echo "  file:         $FILE_ID"
 echo "  epochs:       $FT_EPOCHS"

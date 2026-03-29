@@ -494,6 +494,22 @@ grep -q "python3 -c" "$SCRIPT_DIR/scripts/self-train.sh" && grep -q "json.dumps"
 # Test: setup.sh copies fabric-retrieve.py into plugin dir
 grep -q "fabric-retrieve.py" "$SCRIPT_DIR/setup.sh" && pass "setup copies retrieval helper" || fail "setup missing retrieval copy"
 
+# Test: plugin.yaml declares pre_llm_call
+grep -q "pre_llm_call" "$SCRIPT_DIR/plugins/fabric-memory/plugin.yaml" && pass "plugin.yaml declares pre_llm_call" || fail "plugin.yaml missing pre_llm_call"
+
+# Test: on-start.sh combines project + task text
+grep -q "CLAUDE.md\|README.md" "$SCRIPT_DIR/hooks/on-start.sh" && pass "on-start uses project + task context" || fail "on-start only uses project name"
+
+# Test: skill doesn't hardcode ~/icarus-daedalus as only path
+grep -q "find ~\|ICARUS_DIR" "$SCRIPT_DIR/skills/fabric-memory/SKILL.md" && pass "skill resolves repo dynamically" || fail "skill hardcodes repo path"
+
+# Test: self-train validates params before API call
+st_out=$(TOGETHER_API_KEY="fake" TOGETHER_BATCH_SIZE=1 bash "$SCRIPT_DIR/scripts/self-train.sh" 2>&1 || true)
+echo "$st_out" | grep -q "TOGETHER_BATCH_SIZE=1 must be >= 8" && pass "self-train rejects bad batch_size" || fail "self-train accepts bad batch_size"
+
+st_out=$(TOGETHER_API_KEY="fake" TOGETHER_LR=0 bash "$SCRIPT_DIR/scripts/self-train.sh" 2>&1 || true)
+echo "$st_out" | grep -q "TOGETHER_LR.*must be > 0" && pass "self-train rejects zero learning_rate" || fail "self-train accepts zero lr"
+
 echo ""
 echo "together.jsonl format"
 echo ""
