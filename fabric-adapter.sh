@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
-# fabric-adapter.sh -- Icarus Memory Protocol. Source this file.
+# fabric-adapter.sh -- Icarus Memory Protocol v1. Source this file.
 # fabric_write(agent, platform, type, content, [tier], [refs], [tags], [summary], [cycle])
 # fabric_read(agent, tier)
 # fabric_search(query)
+#
+# Schema v1 fields (project_id, session_id) are set via env vars:
+#   FABRIC_PROJECT_ID  -- project namespace (default: basename of cwd)
+#   FABRIC_SESSION_ID  -- session grouping (default: generated per shell session)
 FABRIC_DIR="${FABRIC_DIR:-$HOME/fabric}"
+FABRIC_PROJECT_ID="${FABRIC_PROJECT_ID:-$(basename "$(pwd)" 2>/dev/null || echo "unknown")}"
+FABRIC_SESSION_ID="${FABRIC_SESSION_ID:-sess-$(date -u '+%Y%m%d-%H%M')-$$}"
 
 fabric_write() {
     local agent="$1" platform="$2" type="$3" content="$4"
@@ -21,9 +27,11 @@ fabric_write() {
       echo "timestamp: $ts_iso"
       echo "type: $type"
       echo "tier: $tier"
+      echo "summary: ${summary:-$type entry by $agent}"
+      echo "project_id: $FABRIC_PROJECT_ID"
+      echo "session_id: $FABRIC_SESSION_ID"
       [ -n "$refs" ] && echo "refs: [$refs]"
       [ -n "$tags" ] && echo "tags: [$tags]"
-      [ -n "$summary" ] && echo "summary: $summary"
       [ -n "$cycle" ] && echo "cycle: $cycle"
       echo "---"
       echo ""

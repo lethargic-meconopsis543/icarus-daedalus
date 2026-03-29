@@ -20,8 +20,11 @@ fp=$(FABRIC_DIR="$T/fabric" fabric_write "test-agent" "cli" "task" "built a webs
 [ -f "$fp" ] && pass "write creates file" || fail "write creates file"
 head -10 "$fp" | grep -q "^agent: test-agent" && pass "frontmatter agent" || fail "frontmatter agent"
 head -10 "$fp" | grep -q "^tier: hot" && pass "frontmatter tier" || fail "frontmatter tier"
-head -10 "$fp" | grep -q "^refs: \[other:1\]" && pass "frontmatter refs" || fail "frontmatter refs"
+head -15 "$fp" | grep -q "^refs: \[other:1\]" && pass "frontmatter refs" || fail "frontmatter refs"
 grep -q "websocket broker" "$fp" && pass "body content" || fail "body content"
+grep -q "^project_id:" "$fp" && pass "schema v1 project_id" || fail "missing project_id"
+grep -q "^session_id:" "$fp" && pass "schema v1 session_id" || fail "missing session_id"
+grep -q "^summary:" "$fp" && pass "schema v1 summary always present" || fail "missing summary"
 
 # uniqueness
 fp2=$(FABRIC_DIR="$T/fabric" fabric_write "test-agent" "cli" "task" "second entry")

@@ -48,6 +48,8 @@ def _write_entry(agent, platform, entry_type, content, summary=""):
     filepath = FABRIC_DIR / filename
 
     entry_id = secrets.token_hex(4)
+    project_id = os.environ.get("FABRIC_PROJECT_ID", "unknown")
+    session_id = os.environ.get("FABRIC_SESSION_ID", f"sess-{now.strftime('%Y%m%d-%H%M')}-{os.getpid()}")
     lines = [
         "---",
         f"id: {entry_id}",
@@ -56,9 +58,10 @@ def _write_entry(agent, platform, entry_type, content, summary=""):
         f"timestamp: {ts_iso}",
         f"type: {entry_type}",
         "tier: hot",
+        f"summary: {summary or f'{entry_type} entry by {agent}'}",
+        f"project_id: {project_id}",
+        f"session_id: {session_id}",
     ]
-    if summary:
-        lines.append(f"summary: {summary}")
     lines.extend(["---", "", content])
     filepath.write_text("\n".join(lines), encoding="utf-8")
     logger.info("fabric-memory: wrote %s", filename)

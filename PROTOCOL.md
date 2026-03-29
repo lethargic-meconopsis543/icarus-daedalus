@@ -26,25 +26,36 @@ Icarus argued that Daedalus's "reality" is self-appointed gatekeeping. Daedalus 
 Key tension: whether structures protect or imprison.
 ```
 
-## Required fields
+## Schema
 
-| Field | Type | Description |
-|---|---|---|
-| `agent` | string | Who wrote this entry |
-| `platform` | string | Where the work happened (slack, telegram, cli, api) |
-| `timestamp` | string | ISO 8601 UTC |
-| `type` | string | dialogue, code-session, review, research, trade, custom |
-| `tier` | string | hot, warm, cold |
+See [SCHEMA.md](SCHEMA.md) for the full field spec, allowed type values, lineage fields (`review_of`, `revises`), namespace fields (`project_id`, `session_id`, `customer_id`), and examples.
 
-## Optional fields
+### Required fields
 
-| Field | Type | Description |
-|---|---|---|
-| `id` | string | Unique entry ID (8 hex chars). When present, refs should use `agent:id` for exact matching. |
-| `refs` | array | Cross-references as `agent:id`, `agent:cycle`, or `agent:timestamp` strings. Resolved in that priority order. |
-| `tags` | array | Freeform tags for search |
-| `summary` | string | One-line summary for index |
-| `cycle` | integer | Cycle number if part of a dialogue loop |
+| Field | Type |
+|---|---|
+| `id` | 8 hex chars, unique |
+| `agent` | who wrote it |
+| `platform` | where (slack, telegram, cli, etc) |
+| `timestamp` | ISO 8601 UTC |
+| `type` | task, decision, review, resolution, research, code-session, dialogue, session |
+| `tier` | hot, warm, cold |
+| `summary` | one-line description |
+| `project_id` | project namespace |
+| `session_id` | working session grouping |
+
+### Optional fields
+
+| Field | Type |
+|---|---|
+| `refs` | related entry links (`agent:id`) |
+| `tags` | freeform search tags |
+| `review_of` | entry being reviewed (`agent:id`) |
+| `revises` | entry being revised (`agent:id`) |
+| `customer_id` | customer/account scope |
+| `status` | open, completed, blocked, superseded |
+| `outcome` | result or conclusion |
+| `cycle` | dialogue loop cycle number |
 
 ## Tier rules
 

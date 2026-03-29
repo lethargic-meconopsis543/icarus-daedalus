@@ -109,14 +109,16 @@ def score_entry(entry, query_tokens, agent=None, project=None, relevant_refs=Non
     tag_hits = len(query_tokens & tag_tokens)
     score += tag_hits * 4
 
-    # 2. Same project
-    entry_project = entry.get("project", "")
+    # 2. Same project (check project_id field first, then fallback to keyword match)
+    entry_project = entry.get("project_id", entry.get("project", ""))
     if project:
         project_lower = project.lower()
-        if project_lower in body or project_lower == str(entry_project).lower():
-            score += 10
+        if project_lower == str(entry_project).lower():
+            score += 10  # exact project_id match
+        elif project_lower in body:
+            score += 8   # project name in body text
         elif any(project_lower in str(t).lower() for t in entry_tags):
-            score += 10
+            score += 8   # project name in tags
 
     # 3. Same agent
     if agent and entry.get("agent") == agent:

@@ -118,6 +118,7 @@ fabric-adapter.sh        write, read, search -- 50 lines of bash
 curator.py               re-tier, compact, build index.json
 export-training.py       extract fine-tuning data from fabric entries
 PROTOCOL.md              memory format spec
+SCHEMA.md                entry schema v1 (fields, types, examples)
 setup.sh                 setup wizard
 test.sh                  core infrastructure tests
 fabric-sync.sh           git-based cross-machine sync
