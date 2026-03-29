@@ -7,12 +7,28 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-OUTPUT_DIR="$REPO_DIR/training-data"
 MIN_PAIRS=20
 POLL_INTERVAL=60
-TIMEOUT=3600  # 60 minutes
+TIMEOUT=3600
+LOCKFILE="/tmp/icarus-self-train.lock"
 
-# Load .env from first hermes agent if TOGETHER_API_KEY not set
+# ── Lockfile ──
+if [ -f "$LOCKFILE" ]; then
+    PID=$(cat "$LOCKFILE" 2>/dev/null)
+    if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then
+        echo "error: another training job is running (pid $PID)"
+        exit 1
+    fi
+    rm -f "$LOCKFILE"  # stale lock
+fi
+echo $$ > "$LOCKFILE"
+cleanup() { rm -f "$LOCKFILE"; [ -n "${OUTPUT_DIR:-}" ] && rm -rf "$OUTPUT_DIR"; }
+trap cleanup EXIT
+
+# ── Unique temp dir per run ──
+OUTPUT_DIR=$(mktemp -d "${TMPDIR:-/tmp}/icarus-training-XXXXXX")
+
+# ── Load TOGETHER_API_KEY from hermes .env if not set ──
 if [ -z "${TOGETHER_API_KEY:-}" ]; then
     for d in "$HOME"/.hermes-*; do
         [ -f "$d/.env" ] || continue
@@ -29,6 +45,27 @@ if [ -z "${TOGETHER_API_KEY:-}" ]; then
     echo "set it in your .env or: export TOGETHER_API_KEY=your-key"
     exit 1
 fi
+
+# ── HTTP helper ──
+# Appends HTTP status code as last line. Caller splits body and code.
+http_post() {
+    curl -s -w '\n%{http_code}' "$@"
+}
+http_get() {
+    curl -s -w '\n%{http_code}' "$@"
+}
+check_http() {
+    local response="$1" label="$2"
+    local http_code body
+    http_code=$(echo "$response" | tail -1)
+    body=$(echo "$response" | sed '$d')
+    if [ "$http_code" != "200" ] && [ "$http_code" != "201" ]; then
+        echo "error: $label returned HTTP $http_code"
+        echo "$body"
+        exit 1
+    fi
+    echo "$body"
+}
 
 # ── Step 1: Export ──
 echo "step 1: exporting training data..."
@@ -55,16 +92,19 @@ fi
 # ── Step 3: Upload ──
 echo ""
 echo "step 2: uploading to Together AI..."
-UPLOAD_RESPONSE=$(curl -s -X POST "https://api.together.xyz/v1/files" \
+UPLOAD_RAW=$(http_post -X POST "https://api.together.xyz/files/upload" \
     -H "Authorization: Bearer $TOGETHER_API_KEY" \
-    -F "file=@$OUTPUT_DIR/openai.jsonl" \
-    -F "purpose=fine-tune")
+    -F "purpose=fine-tune" \
+    -F "file_name=openai.jsonl" \
+    -F "file=@$OUTPUT_DIR/openai.jsonl")
 
-FILE_ID=$(echo "$UPLOAD_RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('id',''))" 2>/dev/null || echo "")
+UPLOAD_BODY=$(check_http "$UPLOAD_RAW" "upload")
+
+FILE_ID=$(echo "$UPLOAD_BODY" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('id',''))" 2>/dev/null || echo "")
 
 if [ -z "$FILE_ID" ]; then
-    echo "error: upload failed"
-    echo "$UPLOAD_RESPONSE"
+    echo "error: upload succeeded but no file ID in response"
+    echo "$UPLOAD_BODY"
     exit 1
 fi
 
@@ -73,20 +113,27 @@ echo "uploaded: $FILE_ID"
 # ── Step 4: Fine-tune ──
 echo ""
 echo "step 3: starting fine-tune..."
-FT_RESPONSE=$(curl -s -X POST "https://api.together.xyz/v1/fine-tunes" \
+FT_RAW=$(http_post -X POST "https://api.together.xyz/v1/fine-tunes" \
     -H "Authorization: Bearer $TOGETHER_API_KEY" \
     -H "Content-Type: application/json" \
-    -d "{\"training_file\": \"$FILE_ID\", \"model\": \"meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo\", \"n_epochs\": 3, \"suffix\": \"icarus-v1\"}")
+    -d "{\"training_file\": \"$FILE_ID\", \"model\": \"meta-llama/Meta-Llama-3.1-8B-Instruct-Reference\", \"n_epochs\": 3, \"suffix\": \"icarus-v1\"}")
 
-JOB_ID=$(echo "$FT_RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('id',''))" 2>/dev/null || echo "")
+FT_BODY=$(check_http "$FT_RAW" "fine-tune")
+
+JOB_ID=$(echo "$FT_BODY" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('id',''))" 2>/dev/null || echo "")
 
 if [ -z "$JOB_ID" ]; then
-    echo "error: fine-tune failed to start"
-    echo "$FT_RESPONSE"
+    echo "error: fine-tune request accepted but no job ID"
+    echo "$FT_BODY"
     exit 1
 fi
 
 echo "job started: $JOB_ID"
+
+# Save job ID so the skill can check later
+JOB_FILE="$REPO_DIR/training-job.txt"
+echo "$JOB_ID" > "$JOB_FILE"
+echo "job ID saved to $JOB_FILE"
 
 # ── Step 5: Poll ──
 echo ""
@@ -97,26 +144,37 @@ while [ "$ELAPSED" -lt "$TIMEOUT" ]; do
     sleep "$POLL_INTERVAL"
     ELAPSED=$((ELAPSED + POLL_INTERVAL))
 
-    STATUS_RESPONSE=$(curl -s "https://api.together.xyz/v1/fine-tunes/$JOB_ID" \
+    STATUS_RAW=$(http_get "https://api.together.xyz/v1/fine-tunes/$JOB_ID" \
         -H "Authorization: Bearer $TOGETHER_API_KEY")
 
-    STATUS=$(echo "$STATUS_RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status','unknown'))" 2>/dev/null || echo "unknown")
+    STATUS_CODE=$(echo "$STATUS_RAW" | tail -1)
+    STATUS_BODY=$(echo "$STATUS_RAW" | sed '$d')
+
+    if [ "$STATUS_CODE" != "200" ]; then
+        echo "  [${ELAPSED}s] poll error: HTTP $STATUS_CODE"
+        continue
+    fi
+
+    STATUS=$(echo "$STATUS_BODY" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status','unknown'))" 2>/dev/null || echo "unknown")
     echo "  [${ELAPSED}s] status: $STATUS"
 
     if [ "$STATUS" = "completed" ]; then
-        MODEL_ID=$(echo "$STATUS_RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('output_name','') or d.get('fine_tuned_model','') or '')" 2>/dev/null || echo "")
+        MODEL_ID=$(echo "$STATUS_BODY" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('model_output_name',''))" 2>/dev/null || echo "")
         echo ""
         echo "fine-tune complete"
         echo "model: $MODEL_ID"
         echo ""
-        echo "to switch: hermes model -> select together -> enter model ID above"
+        echo "to switch, add to your agent's .env:"
+        echo "  OPENAI_BASE_URL=https://api.together.xyz/v1"
+        echo "  OPENAI_API_KEY=\$TOGETHER_API_KEY"
+        echo "  LLM_MODEL=$MODEL_ID"
         exit 0
     fi
 
-    if [ "$STATUS" = "failed" ] || [ "$STATUS" = "cancelled" ]; then
-        ERROR=$(echo "$STATUS_RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('error','unknown error'))" 2>/dev/null || echo "unknown")
+    if [ "$STATUS" = "failed" ] || [ "$STATUS" = "cancelled" ] || [ "$STATUS" = "error" ] || [ "$STATUS" = "cancel_requested" ]; then
+        ERROR=$(echo "$STATUS_BODY" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('error','unknown error'))" 2>/dev/null || echo "unknown")
         echo ""
-        echo "fine-tune failed: $ERROR"
+        echo "fine-tune $STATUS: $ERROR"
         exit 1
     fi
 done

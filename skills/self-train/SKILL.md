@@ -6,22 +6,35 @@ You can train a cheaper version of yourself using the work you and other agents 
 
 When the user asks about training, fine-tuning, training data, or switching models.
 
+## Finding the repo
+
+The icarus-daedalus repo contains the training scripts. Find it by checking common locations:
+
+```bash
+ls ~/icarus-daedalus/scripts/self-train.sh 2>/dev/null || find ~ -maxdepth 3 -name "self-train.sh" -path "*/scripts/*" 2>/dev/null | head -1
+```
+
+Store the repo path for subsequent commands in this session.
+
 ## Commands
 
 ### Check training data
 
-When the user asks "how many training pairs do we have" or "training status":
+When the user asks "how many training pairs" or "training status":
 
 ```bash
-python3 ~/icarus-daedalus/export-training.py --output ~/icarus-daedalus/training-data/
+python3 <REPO>/export-training.py --output /tmp/icarus-training-check/
 ```
 
-Read the output and report: total pairs, review pairs, cross-platform pairs, estimated tokens.
+Report: total pairs, review pairs, cross-platform pairs, estimated tokens.
 
-If a fine-tune job ID is known, check its status:
+If a job ID file exists, check the running job:
 
 ```bash
-curl -s https://api.together.xyz/v1/fine-tunes/$JOB_ID -H "Authorization: Bearer $TOGETHER_API_KEY"
+JOB_ID=$(cat <REPO>/training-job.txt 2>/dev/null)
+if [ -n "$JOB_ID" ]; then
+    curl -s https://api.together.xyz/v1/fine-tunes/$JOB_ID -H "Authorization: Bearer $TOGETHER_API_KEY"
+fi
 ```
 
 ### Train a cheaper version
@@ -29,39 +42,41 @@ curl -s https://api.together.xyz/v1/fine-tunes/$JOB_ID -H "Authorization: Bearer
 When the user says "train yourself", "start fine-tuning", or "train a cheaper version":
 
 ```bash
-bash ~/icarus-daedalus/scripts/self-train.sh
+bash <REPO>/scripts/self-train.sh
 ```
 
-Report each step as it runs. The script handles export, upload, fine-tune start, and polling. When it finishes, report the result. On success, ask: "fine-tune complete. model ready. want me to switch?"
+Report each step as it runs. On success, ask: "fine-tune complete. model ready. want me to switch?"
 
 ### Switch to fine-tuned model
 
-When the user says "switch to cheap model", "use the fine-tuned model", or confirms after training:
+When the user confirms after training or says "switch to cheap model":
 
-Update your hermes config to use Together AI with the fine-tuned model. Edit the config.yaml file in your HERMES_HOME:
+Update the agent's .env file at `$HERMES_HOME/.env`. Save the original values first, then write:
 
 ```bash
-# Read current config
-cat ~/.hermes-$(whoami | tr -d ' ')/config.yaml
+# Save originals
+grep "^HERMES_INFERENCE_PROVIDER=" "$HERMES_HOME/.env" > "$HERMES_HOME/.env.backup-provider"
+grep "^LLM_MODEL=" "$HERMES_HOME/.env" >> "$HERMES_HOME/.env.backup-provider"
 
-# Update model section to:
-# model:
-#   default: "FINE_TUNED_MODEL_ID"
-#   provider: "together"
+# Switch to Together AI (OpenAI-compatible endpoint)
+# Remove old provider lines and add new ones
+sed -i '' '/^HERMES_INFERENCE_PROVIDER=/d;/^LLM_MODEL=/d;/^OPENAI_BASE_URL=/d;/^OPENAI_API_KEY=/d' "$HERMES_HOME/.env"
+echo "HERMES_INFERENCE_PROVIDER=openai" >> "$HERMES_HOME/.env"
+echo "OPENAI_BASE_URL=https://api.together.xyz/v1" >> "$HERMES_HOME/.env"
+echo "OPENAI_API_KEY=$TOGETHER_API_KEY" >> "$HERMES_HOME/.env"
+echo "LLM_MODEL=<FINE_TUNED_MODEL_ID>" >> "$HERMES_HOME/.env"
 ```
 
-You will also need TOGETHER_API_KEY set in .env. Confirm: "switched to [model_name]. running on the fine-tuned model now."
+Confirm: "switched to [model_name]. running on the fine-tuned model now."
 
 ### Switch back
 
 When the user says "switch back", "use claude again", or "rollback":
 
-Revert config.yaml to the original provider and model:
-
 ```bash
-# model:
-#   default: "claude-sonnet-4-20250514"
-#   provider: "anthropic"
+# Restore original provider
+sed -i '' '/^HERMES_INFERENCE_PROVIDER=/d;/^LLM_MODEL=/d;/^OPENAI_BASE_URL=/d;/^OPENAI_API_KEY=/d' "$HERMES_HOME/.env"
+cat "$HERMES_HOME/.env.backup-provider" >> "$HERMES_HOME/.env"
 ```
 
 Confirm: "switched back to claude."
@@ -70,11 +85,11 @@ Confirm: "switched back to claude."
 
 When the user asks "what have you learned":
 
-Read recent fabric entries and summarize the main themes, decisions, and patterns:
-
 ```bash
-source ~/icarus-daedalus/fabric-adapter.sh && fabric_read "" "hot"
+source <REPO>/fabric-adapter.sh && fabric_read "" "hot"
 ```
+
+Read the output and summarize the main themes, decisions, and patterns.
 
 ## Requirements
 
@@ -86,6 +101,8 @@ source ~/icarus-daedalus/fabric-adapter.sh && fabric_read "" "hot"
 
 ## Error handling
 
-- If TOGETHER_API_KEY is not set, tell the user to add it to their .env file
-- If fewer than 20 pairs exist, warn that results may be poor and suggest running more agent sessions first
-- If upload or fine-tune fails, report the error message and suggest checking the data
+- TOGETHER_API_KEY not set: tell user to add it to their .env
+- Fewer than 20 pairs: warn results may be poor, suggest more agent sessions
+- Upload fails: report error, suggest checking the data format
+- Fine-tune fails: report error from Together API
+- Lockfile exists: another training job is running, wait or remove /tmp/icarus-self-train.lock

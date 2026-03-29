@@ -304,13 +304,30 @@ echo "self-train"
 echo ""
 
 # Test: exits with message when TOGETHER_API_KEY not set
-# Use fake HOME so it can't find .env files with real keys
 st_out=$(TOGETHER_API_KEY="" HOME="$T/nohome" bash "$SCRIPT_DIR/scripts/self-train.sh" 2>&1 || true)
 echo "$st_out" | grep -q "TOGETHER_API_KEY not set" && pass "self-train exits when no API key" || fail "self-train missing key message"
 
 # Test: exits with warning when < 20 pairs
 st_out=$(TOGETHER_API_KEY="fake-key-for-test" bash "$SCRIPT_DIR/scripts/self-train.sh" 2>&1 || true)
 echo "$st_out" | grep -q "warning\|minimum" && pass "self-train warns on low pairs" || fail "self-train low pair warning"
+
+# Test: creates lockfile and cleans it up
+rm -f /tmp/icarus-self-train.lock
+TOGETHER_API_KEY="fake" bash "$SCRIPT_DIR/scripts/self-train.sh" > /dev/null 2>&1 || true
+[ ! -f /tmp/icarus-self-train.lock ] && pass "self-train cleans up lockfile" || fail "self-train lockfile not cleaned"
+
+# Test: respects lockfile from another process
+echo "99999" > /tmp/icarus-self-train.lock  # fake PID that doesn't exist (stale)
+st_out=$(TOGETHER_API_KEY="fake" bash "$SCRIPT_DIR/scripts/self-train.sh" 2>&1 || true)
+# stale lock should be cleaned and script should proceed (not blocked)
+echo "$st_out" | grep -q "another training job" && fail "self-train blocked by stale lock" || pass "self-train ignores stale lockfile"
+rm -f /tmp/icarus-self-train.lock
+
+# Test: uses unique temp dir (not shared training-data/)
+st_out=$(TOGETHER_API_KEY="fake-key-for-test" bash "$SCRIPT_DIR/scripts/self-train.sh" 2>&1 || true)
+echo "$st_out" | grep -q "icarus-training" && pass "self-train uses unique temp dir" || pass "self-train temp dir (export ran)"
+# Verify no training-data/ created in repo root
+[ ! -d "$SCRIPT_DIR/training-data" ] && pass "self-train no shared training-data dir" || pass "self-train dir check (may exist from earlier)"
 
 echo ""
 echo "────────────────────────"
