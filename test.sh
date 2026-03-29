@@ -497,8 +497,9 @@ grep -q "fabric-retrieve.py" "$SCRIPT_DIR/setup.sh" && pass "setup copies retrie
 # Test: plugin resets _first_turn_done on session start
 grep -q "_first_turn_done = False" "$SCRIPT_DIR/plugins/fabric-memory/__init__.py" && pass "plugin resets _first_turn_done" || fail "plugin never resets _first_turn_done"
 
-# Test: plugin skips oversized entries (continue not break)
-grep -q "continue.*skip oversized" "$SCRIPT_DIR/plugins/fabric-memory/__init__.py" && pass "plugin skips oversized entries" || fail "plugin breaks on oversized"
+# Test: plugin uses shared retriever (no inline scoring)
+grep -q "_load_retriever\|_get_retriever" "$SCRIPT_DIR/plugins/fabric-memory/__init__.py" && pass "plugin uses shared retriever" || fail "plugin has inline retrieval"
+! grep -q "_score_entry" "$SCRIPT_DIR/plugins/fabric-memory/__init__.py" && pass "no duplicate scoring in plugin" || fail "plugin still has inline _score_entry"
 
 # Test: plugin.yaml declares pre_llm_call
 grep -q "pre_llm_call" "$SCRIPT_DIR/plugins/fabric-memory/plugin.yaml" && pass "plugin.yaml declares pre_llm_call" || fail "plugin.yaml missing pre_llm_call"

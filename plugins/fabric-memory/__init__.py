@@ -110,81 +110,62 @@ def _has_decision(text):
 _session_exchanges = []
 
 
-def _score_entry(entry, query_tokens, agent=None):
-    """Score an entry's relevance to the query. Inline retrieval logic."""
-    body = (entry.get("body", "") + " " + str(entry.get("summary", ""))).lower()
-    entry_tokens = set(re.findall(r'[a-z0-9]+', body)) - {"the", "a", "an", "is", "was", "are", "to", "of", "in", "for", "on", "with", "it", "and", "or", "not"}
-    score = len(query_tokens & entry_tokens) * 2
-    if agent and entry.get("agent") == agent:
-        score += 5
-    # recency
-    ts = entry.get("timestamp", "")
-    if ts:
-        try:
-            from datetime import datetime as _dt
-            age_h = (datetime.now(timezone.utc) - _dt.fromisoformat(str(ts).replace("Z", "+00:00"))).total_seconds() / 3600
-            if age_h < 1: score += 10
-            elif age_h < 24: score += 8
-            elif age_h < 168: score += 4
-        except (ValueError, AttributeError):
-            pass
-    tier = entry.get("tier", "")
-    if tier == "hot": score += 5
-    elif tier == "warm": score += 2
-    return score
+def _load_retriever():
+    """Load fabric-retrieve.py from the plugin directory or common locations.
+
+    setup.sh copies fabric-retrieve.py into the plugin dir during install.
+    This is the single source of retrieval logic -- no inline duplicate.
+    Returns the module or None.
+    """
+    search_paths = [
+        Path(__file__).parent / "fabric-retrieve.py",               # plugin-local copy (installed by setup.sh)
+        Path(os.environ.get("FABRIC_RETRIEVE_PATH", "")),           # explicit override
+        Path(__file__).parent.parent.parent / "fabric-retrieve.py", # repo checkout
+    ]
+    for p in search_paths:
+        if p.exists():
+            try:
+                import importlib.util
+                spec = importlib.util.spec_from_file_location("fabric_retrieve", str(p))
+                mod = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(mod)
+                mod.FABRIC_DIR = FABRIC_DIR
+                logger.debug("fabric-memory: loaded retriever from %s", p)
+                return mod
+            except Exception as exc:
+                logger.debug("fabric-memory: failed to load %s: %s", p, exc)
+    return None
+
+
+_retriever = None
+
+
+def _get_retriever():
+    """Lazy-load the retriever module once."""
+    global _retriever
+    if _retriever is None:
+        _retriever = _load_retriever()
+    return _retriever
 
 
 def _retrieve_relevant(query, agent=None, limit=5, max_tokens=1500):
-    """Inline retrieval: score, rank, budget-cap, deduplicate."""
-    if not FABRIC_DIR.exists():
-        return []
-    query_tokens = set(re.findall(r'[a-z0-9]+', query.lower())) - {"the", "a", "an", "is", "was", "are", "to", "of", "in", "for", "on", "with", "it", "and", "or", "not"}
-    if not query_tokens:
+    """Retrieve relevant entries using the shared fabric-retrieve.py module.
+
+    Falls back to _read_recent if the retriever isn't available.
+    """
+    mod = _get_retriever()
+    if mod is None:
+        logger.debug("fabric-memory: retriever not available, falling back to _read_recent")
         return _read_recent(agent, limit)
 
-    entries = []
-    for f in sorted(FABRIC_DIR.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True):
-        text = f.read_text(encoding="utf-8")[:800]
-        if "tier: hot" not in text and "tier: warm" not in text:
-            continue
-        meta = {}
-        m = re.search(r"^agent: (.+)$", text, re.MULTILINE)
-        if m: meta["agent"] = m.group(1)
-        m = re.search(r"^timestamp: (.+)$", text, re.MULTILINE)
-        if m: meta["timestamp"] = m.group(1)
-        m = re.search(r"^tier: (.+)$", text, re.MULTILINE)
-        if m: meta["tier"] = m.group(1)
-        m = re.search(r"^summary: (.+)$", text, re.MULTILINE)
-        if m: meta["summary"] = m.group(1)
-        body_parts = f.read_text(encoding="utf-8").split("---", 2)
-        meta["body"] = body_parts[2].strip() if len(body_parts) > 2 else ""
-        meta["file"] = f.name
-        entries.append(meta)
-
-    scored = [((_score_entry(e, query_tokens, agent), e)) for e in entries]
-    scored.sort(key=lambda x: x[0], reverse=True)
-    scored = [(s, e) for s, e in scored if s > 0]
-
-    # deduplicate
-    seen = {}
-    deduped = []
-    for s, e in scored:
-        key = (e.get("agent", ""), e.get("body", "")[:50])
-        if key not in seen:
-            seen[key] = True
-            deduped.append((s, e))
-
-    # budget
-    budget = max_tokens
-    result = []
-    for s, e in deduped[:limit]:
-        tokens = len(e.get("body", "")) // 4
-        if tokens > budget:
-            continue  # skip oversized, try next entry
-        budget -= tokens
-        result.append(e)
-
-    return result
+    mod.FABRIC_DIR = FABRIC_DIR
+    try:
+        results = mod.retrieve(query, max_results=limit, max_tokens=max_tokens, agent=agent)
+        # results are (score, entry) tuples; extract just the entries
+        return [e for _, e in results]
+    except Exception as exc:
+        logger.debug("fabric-memory: retrieval error: %s", exc)
+        return _read_recent(agent, limit)
 
 
 # Holds the first user message for deferred retrieval
@@ -258,7 +239,7 @@ def _pre_llm_call(session_id="", user_message="", is_first_turn=False, **kwargs)
     lines = ["[fabric memory] relevant to your request:"]
     for e in results:
         ts = e.get("timestamp", "")[:16] if e.get("timestamp") else "?"
-        summary = e.get("summary") or e.get("body", "")[:80]
+        summary = e.get("summary") or e.get("_body", e.get("body", ""))[:80]
         lines.append(f"  [{ts}] {e.get('agent', '?')}: {summary}")
 
     logger.info("fabric-memory: injected %d entries via query-aware retrieval", len(results))
