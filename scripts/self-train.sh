@@ -10,19 +10,27 @@ REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 MIN_PAIRS=20
 POLL_INTERVAL=60
 TIMEOUT=3600
-LOCKFILE="/tmp/icarus-self-train.lock"
+LOCKDIR="/tmp/icarus-self-train.lock"
 
-# ── Lockfile ──
-if [ -f "$LOCKFILE" ]; then
-    PID=$(cat "$LOCKFILE" 2>/dev/null)
-    if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then
-        echo "error: another training job is running (pid $PID)"
-        exit 1
+# ── Lock (mkdir is atomic on all POSIX systems) ──
+if ! mkdir "$LOCKDIR" 2>/dev/null; then
+    # check for stale lock
+    if [ -f "$LOCKDIR/pid" ]; then
+        STALE_PID=$(cat "$LOCKDIR/pid" 2>/dev/null)
+        if [ -n "$STALE_PID" ] && kill -0 "$STALE_PID" 2>/dev/null; then
+            echo "error: another training job is running (pid $STALE_PID)"
+            exit 1
+        fi
+        # stale lock, reclaim
+        rm -rf "$LOCKDIR"
+        mkdir "$LOCKDIR" 2>/dev/null || { echo "error: cannot acquire lock"; exit 1; }
+    else
+        rm -rf "$LOCKDIR"
+        mkdir "$LOCKDIR" 2>/dev/null || { echo "error: cannot acquire lock"; exit 1; }
     fi
-    rm -f "$LOCKFILE"  # stale lock
 fi
-echo $$ > "$LOCKFILE"
-cleanup() { rm -f "$LOCKFILE"; [ -n "${OUTPUT_DIR:-}" ] && rm -rf "$OUTPUT_DIR"; }
+echo $$ > "$LOCKDIR/pid"
+cleanup() { rm -rf "$LOCKDIR"; [ -n "${OUTPUT_DIR:-}" ] && rm -rf "$OUTPUT_DIR"; }
 trap cleanup EXIT
 
 # ── Unique temp dir per run ──

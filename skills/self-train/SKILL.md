@@ -51,33 +51,41 @@ Report each step as it runs. On success, ask: "fine-tune complete. model ready. 
 
 When the user confirms after training or says "switch to cheap model":
 
-Update the agent's .env file at `$HERMES_HOME/.env`. Save the original values first, then write:
+Use atomic file replacement to update the agent's .env. Never edit in place.
 
 ```bash
-# Save originals
-grep "^HERMES_INFERENCE_PROVIDER=" "$HERMES_HOME/.env" > "$HERMES_HOME/.env.backup-provider"
-grep "^LLM_MODEL=" "$HERMES_HOME/.env" >> "$HERMES_HOME/.env.backup-provider"
+# 1. Backup current .env
+cp "$HERMES_HOME/.env" "$HERMES_HOME/.env.backup"
 
-# Switch to Together AI (OpenAI-compatible endpoint)
-# Remove old provider lines and add new ones
-sed -i '' '/^HERMES_INFERENCE_PROVIDER=/d;/^LLM_MODEL=/d;/^OPENAI_BASE_URL=/d;/^OPENAI_API_KEY=/d' "$HERMES_HOME/.env"
-echo "HERMES_INFERENCE_PROVIDER=openai" >> "$HERMES_HOME/.env"
-echo "OPENAI_BASE_URL=https://api.together.xyz/v1" >> "$HERMES_HOME/.env"
-echo "OPENAI_API_KEY=$TOGETHER_API_KEY" >> "$HERMES_HOME/.env"
-echo "LLM_MODEL=<FINE_TUNED_MODEL_ID>" >> "$HERMES_HOME/.env"
+# 2. Build new .env: keep everything except provider lines, then add new ones
+python3 -c "
+import sys
+lines = open(sys.argv[1]).readlines()
+keep = [l for l in lines if not l.startswith(('HERMES_INFERENCE_PROVIDER=','LLM_MODEL=','OPENAI_BASE_URL=','OPENAI_API_KEY='))]
+keep.append('HERMES_INFERENCE_PROVIDER=openai\n')
+keep.append('OPENAI_BASE_URL=https://api.together.xyz/v1\n')
+keep.append('OPENAI_API_KEY=' + sys.argv[2] + '\n')
+keep.append('LLM_MODEL=' + sys.argv[3] + '\n')
+open(sys.argv[1] + '.tmp', 'w').writelines(keep)
+" "$HERMES_HOME/.env" "$TOGETHER_API_KEY" "<FINE_TUNED_MODEL_ID>"
+
+# 3. Atomic rename
+mv "$HERMES_HOME/.env.tmp" "$HERMES_HOME/.env"
 ```
+
+If anything fails, tell the user to run: `cp $HERMES_HOME/.env.backup $HERMES_HOME/.env`
 
 Confirm: "switched to [model_name]. running on the fine-tuned model now."
 
-### Switch back
+### Switch back / Rollback
 
 When the user says "switch back", "use claude again", or "rollback":
 
 ```bash
-# Restore original provider
-sed -i '' '/^HERMES_INFERENCE_PROVIDER=/d;/^LLM_MODEL=/d;/^OPENAI_BASE_URL=/d;/^OPENAI_API_KEY=/d' "$HERMES_HOME/.env"
-cat "$HERMES_HOME/.env.backup-provider" >> "$HERMES_HOME/.env"
+cp "$HERMES_HOME/.env.backup" "$HERMES_HOME/.env"
 ```
+
+The backup was created during the switch. This is always safe.
 
 Confirm: "switched back to claude."
 
@@ -105,4 +113,5 @@ Read the output and summarize the main themes, decisions, and patterns.
 - Fewer than 20 pairs: warn results may be poor, suggest more agent sessions
 - Upload fails: report error, suggest checking the data format
 - Fine-tune fails: report error from Together API
-- Lockfile exists: another training job is running, wait or remove /tmp/icarus-self-train.lock
+- Lock directory exists: another training job is running, wait or remove /tmp/icarus-self-train.lock/
+- Switch fails mid-write: tell user to run `cp $HERMES_HOME/.env.backup $HERMES_HOME/.env`

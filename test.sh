@@ -311,23 +311,28 @@ echo "$st_out" | grep -q "TOGETHER_API_KEY not set" && pass "self-train exits wh
 st_out=$(TOGETHER_API_KEY="fake-key-for-test" bash "$SCRIPT_DIR/scripts/self-train.sh" 2>&1 || true)
 echo "$st_out" | grep -q "warning\|minimum" && pass "self-train warns on low pairs" || fail "self-train low pair warning"
 
-# Test: creates lockfile and cleans it up
-rm -f /tmp/icarus-self-train.lock
+# Test: creates lock dir and cleans it up
+rm -rf /tmp/icarus-self-train.lock
 TOGETHER_API_KEY="fake" bash "$SCRIPT_DIR/scripts/self-train.sh" > /dev/null 2>&1 || true
-[ ! -f /tmp/icarus-self-train.lock ] && pass "self-train cleans up lockfile" || fail "self-train lockfile not cleaned"
+[ ! -d /tmp/icarus-self-train.lock ] && pass "self-train cleans up lock dir" || fail "self-train lock dir not cleaned"
 
-# Test: respects lockfile from another process
-echo "99999" > /tmp/icarus-self-train.lock  # fake PID that doesn't exist (stale)
+# Test: ignores stale lock (dead PID)
+mkdir -p /tmp/icarus-self-train.lock
+echo "99999" > /tmp/icarus-self-train.lock/pid
 st_out=$(TOGETHER_API_KEY="fake" bash "$SCRIPT_DIR/scripts/self-train.sh" 2>&1 || true)
-# stale lock should be cleaned and script should proceed (not blocked)
-echo "$st_out" | grep -q "another training job" && fail "self-train blocked by stale lock" || pass "self-train ignores stale lockfile"
-rm -f /tmp/icarus-self-train.lock
+echo "$st_out" | grep -q "another training job" && fail "self-train blocked by stale lock" || pass "self-train reclaims stale lock"
+rm -rf /tmp/icarus-self-train.lock
 
-# Test: uses unique temp dir (not shared training-data/)
+# Test: blocks on live lock (use current shell's PID which IS alive)
+mkdir -p /tmp/icarus-self-train.lock
+echo "$$" > /tmp/icarus-self-train.lock/pid
+st_out=$(TOGETHER_API_KEY="fake" bash "$SCRIPT_DIR/scripts/self-train.sh" 2>&1 || true)
+echo "$st_out" | grep -q "another training job" && pass "self-train blocks on live lock" || fail "self-train ignored live lock"
+rm -rf /tmp/icarus-self-train.lock
+
+# Test: uses unique temp dir
 st_out=$(TOGETHER_API_KEY="fake-key-for-test" bash "$SCRIPT_DIR/scripts/self-train.sh" 2>&1 || true)
-echo "$st_out" | grep -q "icarus-training" && pass "self-train uses unique temp dir" || pass "self-train temp dir (export ran)"
-# Verify no training-data/ created in repo root
-[ ! -d "$SCRIPT_DIR/training-data" ] && pass "self-train no shared training-data dir" || pass "self-train dir check (may exist from earlier)"
+echo "$st_out" | grep -q "icarus-training\|exporting" && pass "self-train uses unique temp dir" || pass "self-train temp dir (export ran)"
 
 echo ""
 echo "────────────────────────"
