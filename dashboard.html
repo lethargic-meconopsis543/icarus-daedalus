@@ -1,225 +1,295 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
+<meta charset="UTF-8">
 <meta name="viewport" content="width=1920">
-<title>icarus.sys</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>ICARUS: AGENT_MEMORY_SYSTEM</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#101014;--p:#13131a;--b1:#1c1c26;--b2:#25252f;--t:#d1d1d8;--t2:#7a7a88;--t3:#44444f;--hi:#cf8a2e;--up:#2ea043;--dn:#c43b3b;--bl:#4080c0;--yl:#9e8a30;--cy:#2e8e9e}
-body{font-family:'IBM Plex Mono',monospace;background:var(--bg);color:var(--t2);width:1920px;height:1080px;overflow:hidden;font-size:11px;line-height:1}
+:root{--am:#ff9900;--up:#00ff00;--dn:#ff0000;--bl:#00ccff;--wh:#ffffff;--bg:#000;--hd:#1e1e1e;--bd:#222;--p:#000}
+body{background:var(--bg);color:var(--am);font-family:'JetBrains Mono',monospace;font-size:8px;overflow:hidden;text-transform:uppercase;width:1920px;height:1080px}
 
-.S{display:flex;flex-direction:column;height:100%}
+.dither{pointer-events:none;position:fixed;inset:0;z-index:9999;opacity:.12;background-image:radial-gradient(circle,#fff .5px,transparent 0),linear-gradient(rgba(18,16,16,0) 50%,rgba(0,0,0,.2) 50%);background-size:2px 2px,100% 3px}
 
-/* ── FN TABS ── */
-.fn{height:26px;background:#0c0c10;display:flex;align-items:stretch;border-bottom:1px solid var(--b1);flex-shrink:0}
-.fn-tab{padding:0 14px;display:flex;align-items:center;font-size:10px;color:var(--t3);border-right:1px solid var(--b1);cursor:pointer;gap:4px;letter-spacing:0.3px}
-.fn-tab b{color:var(--t2);font-weight:500}
-.fn-tab:hover{background:var(--p)}
-.fn-tab:active{background:var(--b1)}
-.fn-r{margin-left:auto;display:flex;align-items:center;padding:0 12px;gap:12px;font-size:10px}
-.fn-r .up{color:var(--up)}.fn-r .dn{color:var(--dn)}
+.tabs{background:#111;display:flex;height:20px;border-bottom:1px solid #333;align-items:center}
+.tab{padding:0 10px;border-right:1px solid #333;height:100%;display:flex;align-items:center;font-size:9px;color:#888;cursor:pointer}
+.tab.on{background:#000;color:var(--wh);border-bottom:2px solid var(--am)}
 
-/* ── CMD ── */
-.cmd{height:28px;background:var(--p);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 10px;flex-shrink:0}
-.cmd-label{color:var(--hi);font-size:11px;font-weight:500;margin-right:8px}
-.cmd-in{flex:1;background:transparent;border:none;color:var(--t);font-family:inherit;font-size:11px;outline:none;caret-color:var(--hi)}
-.cmd-in::placeholder{color:var(--t3)}
+.cmdbar{background:#222;padding:2px 8px;display:flex;align-items:center;gap:10px;height:24px}
+.cmdlbl{color:var(--wh);font-weight:800;font-style:italic;font-size:9px}
+.cmdlbl span{color:var(--am)}
+.cmdin{background:#000;border:1px solid #444;color:var(--wh);padding:0 6px;flex-grow:1;font-weight:700;outline:none;font-size:10px;height:18px;font-family:inherit;text-transform:uppercase}
 
-/* ── RIBBON ── */
-.rib{height:20px;background:#0c0c10;border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 10px;font-size:10px;flex-shrink:0;gap:3px;overflow:hidden}
-.rib .k{color:var(--t3);margin-left:6px}.rib .v{color:var(--t)}
-.rib .s{color:var(--b2);margin:0 2px}
+.redstrip{background:#800000;color:var(--wh);padding:2px 10px;font-size:11px;font-weight:800;display:flex;justify-content:space-between;align-items:center;height:22px}
 
-/* ── GRID ── */
-.G{flex:1;display:grid;grid-template-columns:420px 1fr 400px;grid-template-rows:1fr 1fr;overflow:hidden}
-.P{border-right:1px solid var(--b1);border-bottom:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden}
-.P-h{height:18px;background:#0e0e14;border-bottom:1px solid var(--b1);padding:0 8px;display:flex;align-items:center;font-size:9px;color:var(--t3);letter-spacing:0.8px;text-transform:uppercase;flex-shrink:0}
-.P-h span{margin-left:auto;font-size:9px;color:var(--t3)}
-.P-b{flex:1;overflow-y:auto}
-.P-b::-webkit-scrollbar{width:0}
+.timestrip{background:#222;border-bottom:1px solid #444;padding:1px 10px;display:flex;gap:8px;align-items:center;font-weight:700;font-size:9px}
+.timestrip span{color:var(--wh)}
+.timestrip .sel{color:var(--bl)}
 
-/* ── TABLE ── */
+.ws{display:grid;grid-template-columns:280px 1fr 320px;grid-template-rows:1fr 1fr;height:calc(100vh - 133px);background:#111;gap:1px}
+
+.P{background:#000;border:1px solid #222;overflow:hidden;display:flex;flex-direction:column}
+.P-h{background:#1a1a1a;color:var(--wh);font-size:8px;padding:1px 4px;border-bottom:1px solid #333;display:flex;justify-content:space-between;flex-shrink:0}
+
+.P-b{flex:1;overflow-y:auto;overflow-x:hidden}
+.P-b::-webkit-scrollbar{width:2px}
+.P-b::-webkit-scrollbar-thumb{background:#333}
+
 table{width:100%;border-collapse:collapse}
-th{font-weight:500;color:var(--t3);text-align:left;padding:2px 6px;border-bottom:1px solid var(--b1);font-size:9px;position:sticky;top:0;background:#0e0e14;letter-spacing:0.5px}
-td{padding:1px 6px;border-bottom:1px solid #15151c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px}
-tr:hover td{background:#15151e}
+th{text-align:left;padding:2px 4px;color:#666;font-weight:normal;font-size:7px;border-bottom:1px solid #222}
+td{padding:1px 4px;border-bottom:1px solid #111;white-space:nowrap;font-size:8px;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+tr:hover td{background:#0a0a0a}
 
-/* ── LED ── */
-.led{display:inline-block;width:5px;height:5px}
-.led-on{background:var(--up)}.led-off{background:var(--dn);opacity:0.4}
+.up{color:var(--up)}.dn{color:var(--dn)}.bl{color:var(--bl)}.wh{color:var(--wh)}.am{color:var(--am)}
 
-/* ── TICKER ── */
-.tk{width:100%;border-collapse:collapse}
-.tk td{padding:1px 6px;border-bottom:1px solid #15151c;font-size:10px}
-.tk .ts{color:var(--t3);width:36px}
-.tk .ev{width:36px;text-align:center}
-.tk .ag{width:68px;overflow:hidden;text-overflow:ellipsis}
-.tk .hl{color:var(--t2);max-width:0;overflow:hidden;text-overflow:ellipsis}
-.tk tr:hover td{background:#15151e}
-.tk tr:hover .hl{color:var(--t)}
-
-/* ── SPARKLINE ── */
-.spark{display:inline-block;width:28px;height:8px;background:var(--b1);vertical-align:middle;overflow:hidden}
+.spark{display:inline-block;width:24px;height:6px;background:#111;vertical-align:middle;overflow:hidden}
 .spark i{display:block;height:100%}
 
-/* ── SYS SECTIONS ── */
-.ss{padding:3px 8px;border-bottom:1px solid var(--b1)}
-.ss-h{font-size:9px;color:var(--t3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:2px}
-.ss-row{display:flex;align-items:center;gap:4px;padding:1px 0;font-size:10px}
-.ss-k{width:36px;text-align:right;color:var(--t3)}.ss-v{color:var(--t2)}
-.bar{flex:1;height:3px;background:var(--b1)}.bar-f{height:100%}
-.bar-n{width:20px;text-align:right;font-size:10px;font-variant-numeric:tabular-nums}
-
-/* ── COLORS ── */
-.c-hi{color:var(--hi)}.c-up{color:var(--up)}.c-dn{color:var(--dn)}.c-bl{color:var(--bl)}.c-yl{color:var(--yl)}.c-cy{color:var(--cy)}
-
-/* ── FOOTER ── */
-.ft{height:16px;background:#0c0c10;border-top:1px solid var(--b1);display:flex;align-items:center;padding:0 10px;font-size:9px;color:var(--t3);flex-shrink:0;letter-spacing:0.3px}
-.ft span{margin-left:auto}
+.ftclk{position:fixed;bottom:0;width:100%;height:45px;background:#000;border-top:1px solid #333;display:grid;grid-template-columns:repeat(5,1fr);padding:5px;gap:10px;z-index:10}
+.clk{border-left:1px solid #222;padding-left:8px}
+.clk-t{font-size:14px;font-weight:800;color:var(--wh)}
+.clk-l{font-size:8px;color:#555}
+.blink{animation:blinker .8s step-end infinite}
+@keyframes blinker{50%{opacity:0}}
 
 canvas{width:100%;height:100%}
 </style>
 </head>
 <body>
-<div class="S">
+<div class="dither"></div>
 
-<div class="fn">
-  <div class="fn-tab" onclick="act('cycle')"><b>F1</b> RUN</div>
-  <div class="fn-tab" onclick="act('compact')"><b>F2</b> COMPACT</div>
-  <div class="fn-tab"><b>F3</b> LOGS</div>
-  <div class="fn-tab"><b>F4</b> FABRIC</div>
-  <div class="fn-r">
-    <span id="hLive" class="up">LIVE</span>
-    <span id="hClock"></span>
+<div class="tabs">
+  <div class="tab on">FABRIC_CORE</div>
+  <div class="tab">AGENT_SWARM</div>
+  <div class="tab">MEMORY_SYS</div>
+  <div class="tab">PLATFORMS</div>
+  <div class="tab">COMPACTION</div>
+  <div style="flex-grow:1"></div>
+  <div style="padding:0 8px;font-size:8px;color:#555">GD Graphic Dashboard</div>
+</div>
+
+<div class="cmdbar">
+  <div class="cmdlbl">ICARUS <span>FABRIC</span></div>
+  <input type="text" class="cmdin" id="cmd" value="" placeholder="AGENT_SYS <GO>" spellcheck="false">
+  <div style="color:var(--am);font-weight:800;font-size:10px;cursor:pointer" onclick="runcmd()">GO</div>
+</div>
+
+<div class="redstrip">
+  <div style="display:flex;align-items:center;gap:24px">
+    <span>ICARUS AGENT MEMORY SYSTEM</span>
+    <span style="font-size:9px;font-weight:normal" id="rVol">--</span>
+    <span style="font-size:9px;font-weight:normal" id="rBrain">--</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <span style="font-size:9px" id="rLive">LIVE</span>
   </div>
 </div>
 
-<div class="cmd">
-  <span class="cmd-label">></span>
-  <input class="cmd-in" id="cmdIn" placeholder="search or command" spellcheck="false" autofocus>
+<div class="timestrip">
+  <span id="tsHot">HOT --</span>
+  <span id="tsWarm">WARM --</span>
+  <span id="tsCold">COLD --</span>
+  <span class="sel" id="tsInt">INTERVAL 3H</span>
+  <span id="tsLast">LAST --</span>
 </div>
 
-<div class="rib" id="rib"></div>
+<div class="ws">
 
-<div class="G">
-  <div class="P"><div class="P-h">AGENTS <span id="nAg"></span></div><div class="P-b"><table><thead><tr><th></th><th>NAME</th><th>ST</th><th>ROLE</th><th>PLAT</th><th>LAST</th></tr></thead><tbody id="tAg"></tbody></table></div></div>
-  <div class="P"><div class="P-h">TICKER <span id="nTk"></span></div><div class="P-b"><table class="tk"><thead><tr><th>TIME</th><th>TYPE</th><th>AGENT</th><th>HEADLINE</th></tr></thead><tbody id="tTk"></tbody></table></div></div>
-  <div class="P"><div class="P-h">TIMELINE <span id="nTm"></span></div><div class="P-b"><canvas id="cv"></canvas></div></div>
-  <div class="P"><div class="P-h">FABRIC <span id="nMe"></span></div><div class="P-b"><table><thead><tr><th>TIER</th><th>TYPE</th><th>AGENT</th><th>SUMMARY</th><th>AGE</th><th></th></tr></thead><tbody id="tMe"></tbody></table></div></div>
-  <div class="P"><div class="P-h">EXPANDED</div><div class="P-b" id="exp"></div></div>
-  <div class="P"><div class="P-h">SYSTEM</div><div class="P-b" id="sys"></div></div>
+  <!-- LEFT COL -->
+  <div style="display:flex;flex-direction:column;gap:1px">
+    <div class="P" style="height:40%">
+      <div class="P-h"><span>Agent Status</span><span>Live</span></div>
+      <div class="P-b">
+        <div style="padding:4px" id="agQuote"></div>
+      </div>
+    </div>
+    <div class="P" style="flex:1">
+      <div class="P-h"><span>Orchestration Log</span><span id="logCount"></span></div>
+      <div class="P-b"><table><thead><tr><th>Time</th><th>Agent</th><th>Tokens</th><th>Stat</th></tr></thead><tbody id="logBody"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- CENTER: CHART -->
+  <div class="P" style="grid-row:span 2;display:flex;flex-direction:column">
+    <div class="P-h"><span>Memory Entry Timeline</span><span>Track</span></div>
+    <div style="flex:1;position:relative;background:#000;padding:4px">
+      <div style="position:absolute;inset:0;opacity:.08;background-image:linear-gradient(#444 1px,transparent 1px),linear-gradient(90deg,#444 1px,transparent 1px);background-size:40px 40px"></div>
+      <canvas id="cv" style="position:relative;z-index:1"></canvas>
+    </div>
+    <div style="height:80px;border-top:1px solid #222;background:#000;overflow:hidden">
+      <div class="P-h"><span>Fabric Entries</span><span id="entN"></span></div>
+      <div style="overflow-y:auto;height:60px"><table><thead><tr><th>Tier</th><th>Type</th><th>Agent</th><th>Summary</th><th>Age</th><th></th></tr></thead><tbody id="entBody"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- RIGHT COL -->
+  <div style="display:flex;flex-direction:column;gap:1px">
+    <div class="P" style="height:50%">
+      <div class="P-h"><span>Platform Health</span><span>Status</span></div>
+      <div class="P-b"><table><thead><tr><th>Agent</th><th>Platform</th><th>State</th></tr></thead><tbody id="platBody"></tbody></table></div>
+    </div>
+    <div class="P" style="flex:1">
+      <div class="P-h"><span>System Events</span><span>Ticker</span></div>
+      <div class="P-b" id="sysEvents" style="padding:4px"></div>
+    </div>
+  </div>
+
 </div>
 
-<div class="ft">ICARUS.SYS v0.1 <span id="ftTs"></span></div>
-
+<div class="ftclk">
+  <div class="clk"><div class="clk-t" id="cNY"></div><div class="clk-l">NEW YORK</div></div>
+  <div class="clk"><div class="clk-t" id="cLDN"></div><div class="clk-l">LONDON</div></div>
+  <div class="clk"><div class="clk-t" id="cHK"></div><div class="clk-l">HONG KONG</div></div>
+  <div class="clk"><div class="clk-t" id="cSYD"></div><div class="clk-l">SYDNEY</div></div>
+  <div class="clk"><div class="clk-t am">FABRIC</div><div class="clk-l">SYS_HEALTH: STABLE <span class="blink">_</span></div></div>
 </div>
+
 <script>
-var AC={},CP=['#cf8a2e','#4080c0','#2ea043','#8060c0','#c43b3b','#9e8a30','#2e8e9e','#b05020'];
+var AC={},CP=['#ff9900','#00ccff','#00ff00','#ff00ff','#ff0000','#ffff00','#00ffff','#ff6600'];
 function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML}
-function ago(t){if(!t)return'--';try{var d=new Date(t.replace(' UTC',':00Z').replace(' ','T')),m=Math.floor((Date.now()-d)/6e4);return m<1?'<1m':m<60?m+'m':m<1440?Math.floor(m/60)+'h':Math.floor(m/1440)+'d'}catch(e){return'--'}}
+function ago(t){if(!t)return'--';try{var d=new Date(t.replace(' UTC',':00Z').replace(' ','T')),m=Math.floor((Date.now()-d)/6e4);return m<1?'<1M':m<60?m+'M':m<1440?Math.floor(m/60)+'H':Math.floor(m/1440)+'D'}catch(e){return'--'}}
 function ac(n){if(!AC[n])AC[n]=CP[Object.keys(AC).length%CP.length];return AC[n]}
 function kb(b){return(b/1024).toFixed(1)}
-function sparkAge(ts){if(!ts)return'';try{var h=Math.min(168,Math.floor((Date.now()-new Date(ts).getTime())/36e5));var pct=Math.min(100,h/168*100);var c=pct<15?'var(--up)':pct<50?'var(--yl)':'var(--dn)';return'<span class="spark"><i style="width:'+pct+'%;background:'+c+'"></i></span>'}catch(e){return''}}
+function sparkAge(ts){if(!ts)return'';try{var h=Math.min(168,Math.floor((Date.now()-new Date(ts).getTime())/36e5));var p=Math.min(100,h/168*100);var c=p<15?'var(--up)':p<50?'#ff9900':'var(--dn)';return'<span class="spark"><i style="width:'+p+'%;background:'+c+'"></i></span>'}catch(e){return''}}
 
 function render(d){
   var s=d.stats;
-  // ribbon
-  document.getElementById('rib').innerHTML='<span class="k">AGENTS</span><span class="v">'+s.activeAgents+'/'+s.totalAgents+'</span><span class="s">|</span><span class="k">CYCLES</span><span class="v">'+s.totalCycles+'</span><span class="s">|</span><span class="k">ENTRIES</span><span class="v">'+s.memoryEntries+'</span><span class="s">|</span><span class="k">HOT</span><span class="v c-hi">'+s.hot+'</span><span class="k">WRM</span><span class="v c-yl">'+s.warm+'</span><span class="k">CLD</span><span class="v c-bl">'+s.cold+'</span><span class="s">|</span><span class="k">BRAIN</span><span class="v">'+kb(s.brainSize)+'K</span><span class="s">|</span><span class="k">LAST</span><span class="v">'+(d.lastCycleTs?ago(d.lastCycleTs):'--')+'</span>';
-  document.getElementById('nAg').textContent=s.totalAgents;
-  document.getElementById('nTk').textContent='';
-  document.getElementById('nMe').textContent=d.fabricEntries.length;
-  document.getElementById('nTm').textContent=Object.keys(d.timeline).length+'d';
+  // red strip stats
+  document.getElementById('rVol').textContent='VOL '+s.memoryEntries+' ENTRIES';
+  document.getElementById('rBrain').textContent='BRAIN '+kb(s.brainSize)+'K';
+  // time strip
+  document.getElementById('tsHot').textContent='HOT '+s.hot;
+  document.getElementById('tsWarm').textContent='WARM '+s.warm;
+  document.getElementById('tsCold').textContent='COLD '+s.cold;
+  document.getElementById('tsLast').textContent='LAST '+(d.lastCycleTs?ago(d.lastCycleTs):'--');
 
-  // agents
+  // agent quote panel (bloomberg style key-value)
   var h='';d.agents.forEach(function(a){var c=ac(a.name);
-    h+='<tr><td><span class="led '+(a.online?'led-on':'led-off')+'"></span></td><td style="color:'+c+'">'+esc(a.name)+'</td><td>'+(a.online?'<span class="c-up">RUN</span>':'<span class="c-dn">OFF</span>')+'</td><td style="color:var(--t3);max-width:140px">'+esc(a.role)+'</td><td>'+esc(a.lastPlatform||'--')+'</td><td>'+ago(a.lastActive)+'</td></tr>';
-  });document.getElementById('tAg').innerHTML=h;
+    h+='<div style="margin-bottom:6px"><div style="color:'+c+';font-size:10px;font-weight:700;margin-bottom:2px">'+esc(a.name)+'</div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 8px;font-size:8px">';
+    h+='<span style="color:#666">Status</span><span class="'+(a.online?'up':'dn')+' wh" style="font-weight:700">'+(a.online?'RUNNING':'OFFLINE')+'</span>';
+    h+='<span style="color:#666">Role</span><span class="wh">'+esc((a.role||'--').slice(0,30))+'</span>';
+    h+='<span style="color:#666">Last Active</span><span class="wh">'+ago(a.lastActive)+'</span>';
+    h+='<span style="color:#666">Platform</span><span class="wh">'+esc(a.lastPlatform||'--')+'</span>';
+    h+='<span style="color:#666">Cycles</span><span class="wh">'+a.cycles.length+'</span>';
+    h+='</div></div>';
+  });
+  document.getElementById('agQuote').innerHTML=h;
 
-  // ticker: strict table, one line per event
+  // orchestration log: feed as trade recap
   h='';
-  function addTick(ts,type,agent,text,tcls){
-    h+='<tr><td class="ts">'+ago(ts)+'</td><td class="ev '+tcls+'">'+type+'</td><td class="ag" style="color:'+ac(agent)+'">'+esc(agent)+'</td><td class="hl">'+esc(text.slice(0,140))+'</td></tr>';
-  }
-  d.feed.forEach(function(f){addTick(f.timestamp,'INFO',f.agent,(f.thought||f.response||''),'c-cy')});
-  d.agents.forEach(function(a){a.cycles.slice().reverse().slice(0,5).forEach(function(cy){addTick(cy.timestamp,'LOG',a.name,(cy.thought||cy.response||''),'')})});
-  document.getElementById('tTk').innerHTML=h;
-
-  // fabric entries with sparkline age
-  h='';d.fabricEntries.slice(0,30).forEach(function(e){
-    var tc=e.tier==='hot'?'c-hi':e.tier==='warm'?'c-yl':'c-bl';
-    h+='<tr><td class="'+tc+'">'+esc(e.tier).toUpperCase()+'</td><td>'+esc(e.type||'--')+'</td><td style="color:'+ac(e.agent)+'">'+esc(e.agent)+'</td><td style="color:var(--t2);max-width:260px">'+esc(e.summary||e.body||'--')+'</td><td>'+ago(e.timestamp)+'</td><td>'+sparkAge(e.timestamp)+'</td></tr>';
-  });document.getElementById('tMe').innerHTML=h;
-
-  // expanded: last 4 entries with body
-  h='';d.fabricEntries.slice(0,4).forEach(function(e){
-    h+='<div style="padding:3px 8px;border-bottom:1px solid var(--b1)"><div style="display:flex;gap:6px;font-size:10px"><span style="color:'+ac(e.agent)+'">'+esc(e.agent)+'</span><span>'+esc(e.platform)+'</span><span>'+esc(e.type)+'</span><span style="margin-left:auto">'+ago(e.timestamp)+'</span></div><div style="color:var(--t2);font-size:10px;line-height:1.35;margin-top:2px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">'+esc(e.body||e.summary||'--')+'</div></div>';
-  });document.getElementById('exp').innerHTML=h||'<div style="padding:8px;color:var(--t3)">EMPTY</div>';
-
-  // system
-  var t=Math.max(s.hot+s.warm+s.cold,1);
-  h='<div class="ss"><div class="ss-h">TIERS</div>';
-  [['HOT',s.hot,'var(--hi)'],['WRM',s.warm,'var(--yl)'],['CLD',s.cold,'var(--bl)']].forEach(function(r){
-    h+='<div class="ss-row"><span class="ss-k" style="color:'+r[2]+'">'+r[0]+'</span><div class="bar"><div class="bar-f" style="width:'+(r[1]/t*100)+'%;background:'+r[2]+'"></div></div><span class="bar-n" style="color:var(--t2)">'+r[1]+'</span></div>';
-  });h+='</div>';
-
-  h+='<div class="ss"><div class="ss-h">PLATFORMS</div>';
-  var seen={};d.agents.forEach(function(a){a.platforms.forEach(function(p){
-    var k=a.name+p.name;if(seen[k])return;seen[k]=1;var on=p.state==='connected';
-    h+='<div class="ss-row"><span class="led '+(on?'led-on':'led-off')+'"></span><span style="width:56px;color:'+ac(a.name)+'">'+esc(a.name)+'</span><span style="width:52px">'+esc(p.name)+'</span><span style="flex:1;text-align:right;color:'+(on?'var(--up)':'var(--dn)')+'">'+p.state.toUpperCase()+'</span></div>';
+  d.feed.forEach(function(f){
+    h+='<tr><td>'+ago(f.timestamp)+'</td><td><span class="bl">'+esc(f.agent)+'</span></td><td>512</td><td class="up">OK</td></tr>';
+  });
+  d.agents.forEach(function(a){a.cycles.slice().reverse().slice(0,6).forEach(function(cy){
+    h+='<tr><td>'+ago(cy.timestamp)+'</td><td><span style="color:'+ac(a.name)+'">'+esc(a.name)+'</span></td><td>--</td><td class="up">LOG</td></tr>';
   })});
-  if(!Object.keys(seen).length)h+='<div class="ss-row" style="color:var(--t3)">NONE</div>';
-  h+='</div>';
+  document.getElementById('logBody').innerHTML=h;
+  document.getElementById('logCount').textContent=d.feed.length+' events';
 
-  h+='<div class="ss"><div class="ss-h">COMPACTION</div>';
-  if(d.compaction.length){d.compaction.forEach(function(c){h+='<div style="font-size:9px;color:var(--t3);padding:1px 0">'+esc(c.timestamp)+' '+c.details.map(esc).join(' ')+'</div>'})}
-  else h+='<div style="font-size:9px;color:var(--t3)">NO EVENTS</div>';
-  h+='</div>';
+  // fabric entries
+  h='';d.fabricEntries.slice(0,12).forEach(function(e){
+    var tc=e.tier==='hot'?'am':e.tier==='warm'?'':e.tier==='cold'?'bl':'';
+    h+='<tr><td class="'+tc+'">'+esc(e.tier).toUpperCase()+'</td><td>'+esc(e.type||'--')+'</td><td style="color:'+ac(e.agent)+'">'+esc(e.agent)+'</td><td style="max-width:240px;color:#aaa">'+esc((e.summary||e.body||'--').slice(0,60))+'</td><td>'+ago(e.timestamp)+'</td><td>'+sparkAge(e.timestamp)+'</td></tr>';
+  });
+  document.getElementById('entBody').innerHTML=h;
+  document.getElementById('entN').textContent=d.fabricEntries.length;
 
-  h+='<div class="ss"><div class="ss-h">BRAIN</div>';
-  h+='<div class="ss-row"><span class="ss-k">SIZE</span><span class="ss-v">'+kb(s.brainSize)+' KB</span></div>';
-  h+='<div class="ss-row"><span class="ss-k">FILES</span><span class="ss-v">'+s.memoryEntries+'</span></div>';
-  h+='<div class="ss-row"><span class="ss-k">PLATS</span><span class="ss-v">'+s.allPlatforms.length+'</span></div>';
-  h+='</div>';
-  document.getElementById('sys').innerHTML=h;
+  // platform health
+  h='';var seen={};d.agents.forEach(function(a){a.platforms.forEach(function(p){
+    var k=a.name+p.name;if(seen[k])return;seen[k]=1;var on=p.state==='connected';
+    h+='<tr><td style="color:'+ac(a.name)+'">'+esc(a.name)+'</td><td class="bl">'+esc(p.name)+'</td><td class="'+(on?'up':'dn')+'">'+(on?'CONNECTED':'OFFLINE')+'</td></tr>';
+  })});
+  if(!Object.keys(seen).length)h+='<tr><td colspan="3" style="color:#555">NO PLATFORMS</td></tr>';
+  document.getElementById('platBody').innerHTML=h;
+
+  // system events: compaction + brain stats
+  h='';
+  if(d.compaction.length){d.compaction.forEach(function(c){
+    h+='<div style="border-bottom:1px solid #222;padding:2px 0"><span class="am" style="font-weight:700">'+esc(c.timestamp.slice(11,16)||c.timestamp)+'</span> '+c.details.map(esc).join(' ')+'</div>';
+  })}
+  h+='<div style="border-bottom:1px solid #222;padding:2px 0;margin-top:4px"><span style="color:#666">BRAIN SIZE</span> <span class="wh">'+kb(s.brainSize)+' KB</span></div>';
+  h+='<div style="border-bottom:1px solid #222;padding:2px 0"><span style="color:#666">TOTAL FILES</span> <span class="wh">'+s.memoryEntries+'</span></div>';
+  h+='<div style="border-bottom:1px solid #222;padding:2px 0"><span style="color:#666">AGENTS</span> <span class="wh">'+s.totalAgents+'</span></div>';
+  h+='<div style="border-bottom:1px solid #222;padding:2px 0"><span style="color:#666">PLATFORMS</span> <span class="wh">'+s.allPlatforms.length+'</span></div>';
+
+  // tier bars
+  var t=Math.max(s.hot+s.warm+s.cold,1);
+  h+='<div style="margin-top:6px;font-size:7px;color:#555">TIER ALLOCATION</div>';
+  [['HOT',s.hot,'var(--am)'],['WARM',s.warm,'#996600'],['COLD',s.cold,'var(--bl)']].forEach(function(r){
+    h+='<div style="display:flex;align-items:center;gap:4px;padding:1px 0"><span style="width:28px;text-align:right;color:'+r[2]+'">'+r[0]+'</span><div style="flex:1;height:3px;background:#111"><div style="height:100%;width:'+(r[1]/t*100)+'%;background:'+r[2]+'"></div></div><span style="width:20px;text-align:right;color:#666">'+r[1]+'</span></div>';
+  });
+  document.getElementById('sysEvents').innerHTML=h;
 
   // chart
   var cv=document.getElementById('cv'),cx=cv.getContext('2d');
-  var W=cv.parentElement.clientWidth,H=cv.parentElement.clientHeight;
+  var W=cv.parentElement.clientWidth-8,H=cv.parentElement.clientHeight-8;
   cv.width=W;cv.height=H;cx.clearRect(0,0,W,H);
   var days=Object.keys(d.timeline).sort();
-  if(days.length<2){cx.fillStyle='#44444f';cx.font='9px IBM Plex Mono';cx.fillText('COLLECTING...',W/2-36,H/2);return}
+  if(days.length<2){cx.fillStyle='#555';cx.font='10px JetBrains Mono';cx.fillText('COLLECTING DATA...',W/2-60,H/2);return}
   var agents=[...new Set(d.fabricEntries.map(function(e){return e.agent}))],mx=1;
   days.forEach(function(dy){agents.forEach(function(a){mx=Math.max(mx,(d.timeline[dy]||{})[a]||0)})});
-  var pL=28,pR=6,pT=6,pB=14,gW=W-pL-pR,gH=H-pT-pB;
-  cx.strokeStyle='#1c1c26';cx.lineWidth=0.5;
+  var pL=32,pR=8,pT=8,pB=18,gW=W-pL-pR,gH=H-pT-pB;
+  // grid
+  cx.strokeStyle='#222';cx.lineWidth=0.5;
   for(var i=0;i<=4;i++){var y=pT+gH/4*i;cx.beginPath();cx.moveTo(pL,y);cx.lineTo(W-pR,y);cx.stroke()}
-  cx.fillStyle='#44444f';cx.font='8px IBM Plex Mono';
-  for(var i=0;i<=4;i++){cx.fillText(Math.round(mx-mx/4*i),1,pT+3+gH/4*i)}
+  cx.fillStyle='#555';cx.font='8px JetBrains Mono';
+  for(var i=0;i<=4;i++){cx.fillText(Math.round(mx-mx/4*i),2,pT+3+gH/4*i)}
+  // price-style line
   agents.forEach(function(ag){
-    cx.strokeStyle=ac(ag);cx.lineWidth=1;cx.beginPath();
+    cx.strokeStyle=ac(ag);cx.lineWidth=2;cx.beginPath();
     days.forEach(function(dy,di){
       var px=pL+(di/(days.length-1))*gW,v=(d.timeline[dy]||{})[ag]||0,py=pT+gH-(v/mx)*gH;
       di===0?cx.moveTo(px,py):cx.lineTo(px,py);
     });cx.stroke();
   });
-  cx.fillStyle='#44444f';cx.font='8px IBM Plex Mono';
+  // current price line
+  if(agents.length>0){
+    var lastDay=days[days.length-1],lastV=(d.timeline[lastDay]||{})[agents[0]]||0;
+    var lastY=pT+gH-(lastV/mx)*gH;
+    cx.setLineDash([2,2]);cx.strokeStyle='rgba(255,255,255,0.3)';cx.lineWidth=0.5;
+    cx.beginPath();cx.moveTo(pL,lastY);cx.lineTo(W-pR,lastY);cx.stroke();cx.setLineDash([]);
+    // label
+    cx.fillStyle='#004400';cx.fillRect(pL,lastY-8,80,14);
+    cx.fillStyle='var(--up)';cx.font='bold 9px JetBrains Mono';
+    cx.fillText('L: '+lastV,pL+4,lastY+3);
+  }
+  // x labels
+  cx.fillStyle='#555';cx.font='8px JetBrains Mono';
   cx.fillText(days[0],pL,H-2);
-  if(days.length>1)cx.fillText(days[days.length-1],W-pR-60,H-2);
-  var lx=pL;agents.forEach(function(ag){cx.fillStyle=ac(ag);cx.fillRect(lx,H-12,4,4);cx.fillStyle='#44444f';cx.fillText(ag,lx+7,H-7);lx+=cx.measureText(ag).width+16});
+  cx.fillText(days[days.length-1],W-pR-70,H-2);
+  // legend
+  var lx=pL+80;agents.forEach(function(ag){
+    cx.fillStyle=ac(ag);cx.fillRect(lx,pT,6,6);cx.fillStyle='#888';cx.font='8px JetBrains Mono';cx.fillText(ag,lx+9,pT+6);lx+=cx.measureText(ag).width+20;
+  });
 }
 
+function runcmd(){
+  var v=document.getElementById('cmd').value.trim().toLowerCase();
+  if(v==='run'||v==='cycle'||v.includes('<go>'))act('cycle');
+  else if(v==='compact')act('compact');
+  document.getElementById('cmd').value='';
+}
 function act(n){fetch('/api/action/'+n,{method:'POST'}).then(function(r){return r.json()}).then(function(r){console.log(r)})}
-document.getElementById('cmdIn').addEventListener('keydown',function(e){if(e.key==='Enter'){var v=this.value.trim().toLowerCase();if(v==='run'||v==='cycle')act('cycle');else if(v==='compact')act('compact');this.value=''}});
+document.getElementById('cmd').addEventListener('keydown',function(e){if(e.key==='Enter')runcmd()});
 document.addEventListener('keydown',function(e){if(e.target.tagName==='INPUT')return;if(e.key==='F1'){e.preventDefault();act('cycle')}if(e.key==='F2'){e.preventDefault();act('compact')}});
-function clk(){var n=new Date();document.getElementById('hClock').textContent=n.toISOString().slice(11,19);document.getElementById('ftTs').textContent=n.toISOString().slice(0,19).replace('T',' ')+' UTC'}
+
+// clocks
+function clk(){
+  var fmt=function(tz){return new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(new Date())};
+  document.getElementById('cNY').textContent=fmt('America/New_York');
+  document.getElementById('cLDN').textContent=fmt('Europe/London');
+  document.getElementById('cHK').textContent=fmt('Asia/Hong_Kong');
+  document.getElementById('cSYD').textContent=fmt('Australia/Sydney');
+}
 clk();setInterval(clk,1000);
+
 fetch('/api/data').then(function(r){return r.json()}).then(render);
 var sse=new EventSource('/api/stream');
 sse.onmessage=function(e){render(JSON.parse(e.data))};
-sse.onerror=function(){document.getElementById('hLive').className='dn';document.getElementById('hLive').textContent='DISCONNECTED'};
-sse.onopen=function(){document.getElementById('hLive').className='up';document.getElementById('hLive').textContent='LIVE'};
+sse.onerror=function(){document.getElementById('rLive').textContent='DISCONNECTED';document.getElementById('rLive').style.color='var(--dn)'};
+sse.onopen=function(){document.getElementById('rLive').textContent='LIVE';document.getElementById('rLive').style.color='var(--up)'};
 </script>
 </body>
 </html>
