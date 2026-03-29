@@ -66,7 +66,15 @@ Three pair types: basic task completion, review-correction (original + feedback 
 
 Agents accumulate training data as they work. When you have enough pairs (20+), fine-tune a cheaper model that mirrors your agents' behavior. The fine-tuned model runs on Together AI at a fraction of the cost.
 
-Run the pipeline directly: `bash scripts/self-train.sh`. Or tell your agent on any platform: "train yourself" and it handles export, upload, fine-tune, and polling through the `skills/self-train/` skill. Switch between the fine-tuned model and Claude at any time.
+```bash
+bash scripts/self-train.sh
+```
+
+Default model: `Qwen/Qwen2-7B-Instruct` (validated). Override with `TOGETHER_MODEL=...`. Model availability is account-dependent on Together -- Llama 3.x may not be enabled for fine-tuning on all accounts.
+
+Together requires explicit hyperparameters (batch_size >= 8, learning_rate > 0, n_checkpoints >= 1). The script sets all of these. Override via `TOGETHER_BATCH_SIZE`, `TOGETHER_LR`, `TOGETHER_CHECKPOINTS`, `TOGETHER_EPOCHS`.
+
+Or tell your agent on any platform: "train yourself" and it handles export, upload, fine-tune, and polling through the `skills/self-train/` skill.
 
 ## Hermes plugin
 

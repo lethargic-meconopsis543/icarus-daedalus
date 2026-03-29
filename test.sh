@@ -334,6 +334,44 @@ rm -rf /tmp/icarus-self-train.lock
 st_out=$(TOGETHER_API_KEY="fake-key-for-test" bash "$SCRIPT_DIR/scripts/self-train.sh" 2>&1 || true)
 echo "$st_out" | grep -q "icarus-training\|exporting" && pass "self-train uses unique temp dir" || pass "self-train temp dir (export ran)"
 
+# Test: script source contains required params in the payload
+grep -q 'batch_size' "$SCRIPT_DIR/scripts/self-train.sh" && pass "payload includes batch_size" || fail "payload missing batch_size"
+grep -q 'learning_rate' "$SCRIPT_DIR/scripts/self-train.sh" && pass "payload includes learning_rate" || fail "payload missing learning_rate"
+grep -q 'n_checkpoints' "$SCRIPT_DIR/scripts/self-train.sh" && pass "payload includes n_checkpoints" || fail "payload missing n_checkpoints"
+grep -q 'Qwen/Qwen2-7B-Instruct' "$SCRIPT_DIR/scripts/self-train.sh" && pass "default model is Qwen2-7B-Instruct" || fail "wrong default model"
+
+# Test: defaults are nonzero
+grep -q 'TOGETHER_BATCH_SIZE:-8' "$SCRIPT_DIR/scripts/self-train.sh" && pass "default batch_size is 8" || fail "batch_size default not 8"
+grep -q 'TOGETHER_LR:-1e-5' "$SCRIPT_DIR/scripts/self-train.sh" && pass "default learning_rate is 1e-5" || fail "learning_rate default wrong"
+grep -q 'TOGETHER_CHECKPOINTS:-1' "$SCRIPT_DIR/scripts/self-train.sh" && pass "default n_checkpoints is 1" || fail "n_checkpoints default wrong"
+
+# Test: script prints params before API call
+grep -q 'echo.*batch_size' "$SCRIPT_DIR/scripts/self-train.sh" && pass "prints batch_size before call" || fail "no batch_size print"
+grep -q 'echo.*learning_rate' "$SCRIPT_DIR/scripts/self-train.sh" && pass "prints learning_rate before call" || fail "no learning_rate print"
+grep -q 'echo.*model:' "$SCRIPT_DIR/scripts/self-train.sh" && pass "prints model before call" || fail "no model print"
+
+echo ""
+echo "together.jsonl format"
+echo ""
+
+# Golden test: together.jsonl has system + user + assistant messages
+GT=$(mktemp -d)
+python3 "$SCRIPT_DIR/export-training.py" --output "$GT" > /dev/null 2>&1
+python3 -c "
+import json, sys
+with open('$GT/together.jsonl') as f:
+    for i, line in enumerate(f, 1):
+        obj = json.loads(line.strip())
+        msgs = obj.get('messages', [])
+        assert len(msgs) >= 3, f'line {i}: expected 3+ messages, got {len(msgs)}'
+        assert msgs[0]['role'] == 'system', f'line {i}: first role should be system, got {msgs[0][\"role\"]}'
+        assert msgs[-1]['role'] == 'assistant', f'line {i}: last role should be assistant, got {msgs[-1][\"role\"]}'
+        assert msgs[0]['content'].strip(), f'line {i}: system content empty'
+        assert msgs[-1]['content'].strip(), f'line {i}: assistant content empty'
+print(f'  pass: together.jsonl {i} lines: system+user+assistant format')
+" || fail "together.jsonl golden format"
+rm -rf "$GT"
+
 echo ""
 echo "────────────────────────"
 echo "  $PASS passed, $FAIL failed"

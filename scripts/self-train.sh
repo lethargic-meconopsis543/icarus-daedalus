@@ -167,14 +167,33 @@ echo "uploaded: $FILE_ID"
 # ── Step 4: Fine-tune ──
 echo ""
 echo "step 4: starting fine-tune..."
-# Use the model name from TOGETHER_MODEL env var, or default
+
 FT_MODEL="${TOGETHER_MODEL:-Qwen/Qwen2-7B-Instruct}"
-echo "  model: $FT_MODEL"
-echo "  file: $FILE_ID"
-# Together requires: batch_size >= 8, explicit n_checkpoints, explicit learning_rate
+FT_EPOCHS="${TOGETHER_EPOCHS:-3}"
+FT_BATCH="${TOGETHER_BATCH_SIZE:-8}"
+FT_LR="${TOGETHER_LR:-1e-5}"
+FT_CHECKPOINTS="${TOGETHER_CHECKPOINTS:-1}"
+FT_SUFFIX="${TOGETHER_SUFFIX:-icarus-v1}"
+
+# Preflight: reject empty or known-bad models
+if [ -z "$FT_MODEL" ]; then
+    echo "error: TOGETHER_MODEL is empty"
+    exit 1
+fi
+
+echo "  model:        $FT_MODEL"
+echo "  file:         $FILE_ID"
+echo "  epochs:       $FT_EPOCHS"
+echo "  batch_size:   $FT_BATCH"
+echo "  learning_rate: $FT_LR"
+echo "  checkpoints:  $FT_CHECKPOINTS"
+echo "  suffix:       $FT_SUFFIX"
+
+# Together rejects requests where batch_size, learning_rate, or n_checkpoints are zero.
+# All three must be explicitly set.
 FT_RAW=$(http_post -X POST "https://api.together.xyz/v1/fine-tunes" \
     -H "Content-Type: application/json" \
-    -d "{\"training_file\": \"$FILE_ID\", \"model\": \"$FT_MODEL\", \"n_epochs\": 3, \"suffix\": \"icarus-v1\", \"batch_size\": 8, \"learning_rate\": 1e-5, \"n_checkpoints\": 1}")
+    -d "{\"training_file\": \"$FILE_ID\", \"model\": \"$FT_MODEL\", \"n_epochs\": $FT_EPOCHS, \"suffix\": \"$FT_SUFFIX\", \"batch_size\": $FT_BATCH, \"learning_rate\": $FT_LR, \"n_checkpoints\": $FT_CHECKPOINTS}")
 
 split_http "$FT_RAW"
 assert_http "fine-tune"
