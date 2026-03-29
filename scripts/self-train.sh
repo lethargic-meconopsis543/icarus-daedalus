@@ -118,12 +118,22 @@ with open(sys.argv[1]) as f:
             continue
         try:
             obj = json.loads(line)
-            if 'text' not in obj:
-                print(f'  line {i}: missing text field')
+            msgs = obj.get('messages')
+            if not msgs:
+                print(f'  line {i}: missing or empty messages array')
                 errors += 1
-            elif not obj['text'].strip():
-                print(f'  line {i}: empty text field')
+                continue
+            if not isinstance(msgs, list) or len(msgs) < 2:
+                print(f'  line {i}: messages must have at least 2 entries')
                 errors += 1
+                continue
+            for j, m in enumerate(msgs):
+                if m.get('role') not in ('system', 'user', 'assistant'):
+                    print(f'  line {i} msg {j}: invalid role: {m.get(\"role\")}')
+                    errors += 1
+                if not m.get('content', '').strip():
+                    print(f'  line {i} msg {j}: empty content')
+                    errors += 1
         except json.JSONDecodeError as e:
             print(f'  line {i}: invalid JSON: {e}')
             errors += 1

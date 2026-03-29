@@ -237,8 +237,11 @@ def to_openai(pair):
 
 
 def to_together(pair):
-    """Convert to Together AI fine-tuning format (Llama instruct template)."""
-    return {"text": f"<s>[INST] {pair['input']} [/INST] {pair['output']}</s>"}
+    """Convert to Together AI fine-tuning format (messages format for instruct models)."""
+    return {"messages": [
+        {"role": "user", "content": pair["input"]},
+        {"role": "assistant", "content": pair["output"]},
+    ]}
 
 
 def to_hf(pair):
