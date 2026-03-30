@@ -32,10 +32,18 @@ def fabric_write(args: dict, **kwargs) -> str:
     summary = args.get("summary", "").strip()
     status = args.get("status", "").strip()
     assigned_to = args.get("assigned_to", "").strip()
+    review_of = args.get("review_of", "").strip()
+    revises = args.get("revises", "").strip()
     if not entry_type or not content or not summary:
         return _json({"error": "Need type, content, and summary"})
     if status == "open" and not assigned_to:
-        return _json({"error": "Open handoffs require assigned_to"})
+        return _json({"error": "status='open' requires assigned_to"})
+    if entry_type == "review" and not review_of:
+        return _json({"error": "type='review' requires review_of (agent:id of the entry you are reviewing)"})
+    if review_of and ":" not in review_of:
+        return _json({"error": "review_of must be agent:id format (e.g. icarus:a3f29b01)"})
+    if revises and ":" not in revises:
+        return _json({"error": "revises must be agent:id format (e.g. icarus:a3f29b01)"})
     try:
         path = state.write_entry(
             entry_type=entry_type,
@@ -44,8 +52,8 @@ def fabric_write(args: dict, **kwargs) -> str:
             tags=args.get("tags", ""),
             status=status,
             outcome=args.get("outcome", ""),
-            review_of=args.get("review_of", ""),
-            revises=args.get("revises", ""),
+            review_of=review_of,
+            revises=revises,
             customer_id=args.get("customer_id", ""),
             assigned_to=assigned_to,
         )

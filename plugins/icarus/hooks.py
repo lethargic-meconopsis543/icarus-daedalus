@@ -80,14 +80,13 @@ def on_session_start(session_id="", platform="", **kwargs):
     # pending work (handoff-aware)
     open_tasks, reviews, open_tickets = state.read_pending()
     if open_tasks:
-        parts.append(f"[fabric] {len(open_tasks)} open item(s) assigned to you:")
+        parts.append(f"[fabric] {len(open_tasks)} item(s) assigned to you:")
         for t in open_tasks[:5]:
             src = t.get("agent", "?")
             entry_id = t.get("id", "?")
-            parts.append(
-                f"  - {src}: {t.get('summary', '?')} (id {entry_id})"
-            )
-        parts.append("  When you review these, use fabric_write with type='review' and review_of='{agent}:{id}'.")
+            etype = t.get("type", "task")
+            parts.append(f"  - {src}: {t.get('summary', '?')} ({etype}, id {entry_id})")
+        parts.append("  Link back with review_of or revises using the source agent:id when you respond.")
 
     if reviews:
         parts.append(f"[fabric] {len(reviews)} review(s) of your work:")
@@ -95,21 +94,17 @@ def on_session_start(session_id="", platform="", **kwargs):
             reviewer = r.get("agent", "?")
             entry_id = r.get("id", "?")
             ref = r.get("review_of", "")
-            parts.append(
-                f"  - {reviewer}: {r.get('summary', '?')} (review id {entry_id}, of {ref})"
-            )
-        parts.append("  When you fix these, use fabric_write with revises='{your_agent}:{your_original_id}'.")
+            parts.append(f"  - {reviewer}: {r.get('summary', '?')} (review id {entry_id}, of {ref})")
+        parts.append("  When you fix the issues, set revises to your original entry's agent:id.")
 
     if open_tickets:
-        parts.append(f"[fabric] {len(open_tickets)} open ticket(s) assigned to you:")
+        parts.append(f"[fabric] {len(open_tickets)} ticket(s) assigned to you:")
         for t in open_tickets[:5]:
             cid = t.get("customer_id", "?")
             src = t.get("agent", "?")
             entry_id = t.get("id", "?")
-            parts.append(
-                f"  - [{cid}] {t.get('summary', '?')} (from {src}, id {entry_id})"
-            )
-        parts.append("  When you resolve these, carry the customer_id forward in your fabric_write.")
+            parts.append(f"  - [{cid}] {t.get('summary', '?')} (from {src}, id {entry_id})")
+        parts.append("  Carry customer_id forward when you resolve these.")
 
     # cross-agent feedback (non-pending items)
     if not open_tasks and not reviews:

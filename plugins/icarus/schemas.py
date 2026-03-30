@@ -36,22 +36,21 @@ FABRIC_WRITE = {
     "name": "fabric_write",
     "description": (
         "Write a new entry to shared fabric memory. All agents on all platforms "
-        "can read it. IMPORTANT linking rules:\n"
-        "- When you review another agent's work, ALWAYS set type='review' and "
-        "review_of='agent:id' using the exact ID from session context or fabric_pending.\n"
-        "- When you fix or revise work after receiving feedback, ALWAYS set "
-        "revises='agent:id' pointing to the entry you are fixing.\n"
-        "- When handing work to another agent, set status='open' and assigned_to "
-        "with the target agent's name.\n"
-        "These links are how other agents trace the chain of work and how "
-        "training data extraction builds review-correction pairs."
+        "can read it. Linking guidelines:\n"
+        "- type='review' + review_of: when you evaluate another agent's work, "
+        "link back to the original entry so the chain is traceable.\n"
+        "- revises: when you fix or improve an entry after receiving feedback, "
+        "link to your original entry so before/after are connected.\n"
+        "- status='open' + assigned_to: when handing work to a specific agent.\n"
+        "Links improve retrieval, training data quality, and cross-agent awareness. "
+        "If you have the source entry ID (from session context or fabric_pending), use it."
     ),
     "parameters": {
         "type": "object",
         "properties": {
             "type": {
                 "type": "string",
-                "description": "Entry type: task, decision, review, resolution, research, code-session, session, note. Use 'review' when responding to another agent's work.",
+                "description": "Entry type: task, decision, review, resolution, research, code-session, session, note",
             },
             "content": {
                 "type": "string",
@@ -67,19 +66,19 @@ FABRIC_WRITE = {
             },
             "status": {
                 "type": "string",
-                "description": "open = needs another agent's attention (requires assigned_to). completed = done. blocked = stuck. superseded = replaced by newer entry.",
+                "description": "open (requires assigned_to), completed, blocked, or superseded",
             },
             "outcome": {
                 "type": "string",
-                "description": "Result or conclusion. What happened. Most valuable field for training.",
+                "description": "Result or conclusion. Most valuable field for training.",
             },
             "review_of": {
                 "type": "string",
-                "description": "REQUIRED when type='review'. The entry you are reviewing, as agent:id (e.g. icarus:a3f29b01). Get the id from session-start context or fabric_pending results.",
+                "description": "When type='review': the entry you are evaluating, as agent:id (e.g. icarus:a3f29b01). Get the id from session context or fabric_pending.",
             },
             "revises": {
                 "type": "string",
-                "description": "REQUIRED when fixing work after a review. The entry you are revising, as agent:id. Creates an explicit before/after chain for training.",
+                "description": "When resubmitting fixed work: the original entry you are revising, as agent:id. Connects the before/after for training.",
             },
             "customer_id": {
                 "type": "string",
@@ -87,7 +86,7 @@ FABRIC_WRITE = {
             },
             "assigned_to": {
                 "type": "string",
-                "description": "REQUIRED when status='open'. The agent name who should pick this up. Without this, the entry won't appear in their fabric_pending.",
+                "description": "When status='open': the agent who should pick this up. Required for the entry to appear in their fabric_pending.",
             },
         },
         "required": ["type", "content", "summary"],
@@ -97,13 +96,14 @@ FABRIC_WRITE = {
 FABRIC_PENDING = {
     "name": "fabric_pending",
     "description": (
-        "Show work waiting for your attention. Returns entry IDs you need for linking.\n"
-        "- open_tasks: entries from other agents assigned to you. When you finish "
-        "reviewing one, use fabric_write with type='review' and review_of='agent:id'.\n"
-        "- reviews_of_my_work: feedback on your entries. When you fix the issue, "
-        "use fabric_write with revises='agent:id' pointing to your original entry.\n"
-        "- open_tickets: customer-scoped entries assigned to you. Carry the customer_id forward.\n"
-        "Call this at session start to decide what to work on."
+        "Show work assigned to you. Returns entry metadata including IDs for linking.\n"
+        "- open_tasks: work from other agents you need to act on. Could be code to "
+        "review, research to implement, a ticket to resolve, or a task to complete. "
+        "Check the entry type to decide your response.\n"
+        "- reviews_of_my_work: feedback from other agents on your entries. "
+        "Use revises to link your fix back to the original.\n"
+        "- open_tickets: customer-scoped entries. Carry customer_id forward when resolving.\n"
+        "Call at session start to see what needs attention."
     ),
     "parameters": {
         "type": "object",
