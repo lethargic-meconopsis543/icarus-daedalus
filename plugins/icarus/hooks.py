@@ -86,7 +86,7 @@ def on_session_start(session_id="", platform="", **kwargs):
             entry_id = t.get("id", "?")
             etype = t.get("type", "task")
             parts.append(f"  - {src}: {t.get('summary', '?')} ({etype}, id {entry_id})")
-        parts.append("  Link back with review_of or revises using the source agent:id when you respond.")
+        parts.append("  If reviewing, set review_of. If revising, set revises. Otherwise just complete the work.")
 
     if reviews:
         parts.append(f"[fabric] {len(reviews)} review(s) of your work:")

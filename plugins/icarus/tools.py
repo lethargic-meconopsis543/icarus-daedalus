@@ -40,10 +40,14 @@ def fabric_write(args: dict, **kwargs) -> str:
         return _json({"error": "status='open' requires assigned_to"})
     if entry_type == "review" and not review_of:
         return _json({"error": "type='review' requires review_of (agent:id of the entry you are reviewing)"})
-    if review_of and ":" not in review_of:
-        return _json({"error": "review_of must be agent:id format (e.g. icarus:a3f29b01)"})
-    if revises and ":" not in revises:
-        return _json({"error": "revises must be agent:id format (e.g. icarus:a3f29b01)"})
+    if review_of:
+        parts = review_of.split(":", 1)
+        if len(parts) != 2 or not parts[0] or not parts[1] or len(parts[1]) < 4:
+            return _json({"error": f"review_of must be agent:id (e.g. icarus:a3f29b01), got '{review_of}'"})
+    if revises:
+        parts = revises.split(":", 1)
+        if len(parts) != 2 or not parts[0] or not parts[1] or len(parts[1]) < 4:
+            return _json({"error": f"revises must be agent:id (e.g. icarus:a3f29b01), got '{revises}'"})
     try:
         path = state.write_entry(
             entry_type=entry_type,
