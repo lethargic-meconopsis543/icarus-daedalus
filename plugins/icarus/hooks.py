@@ -77,14 +77,6 @@ def on_session_start(session_id="", platform="", **kwargs):
     if soul:
         parts.append(soul.strip())
 
-    # recent entries
-    entries = state.read_recent(limit=5)
-    if entries:
-        parts.append("[fabric] recent activity:")
-        for e in entries:
-            ts = e["timestamp"][:16] if e["timestamp"] else "?"
-            parts.append(f"  [{ts}] {e['agent']}: {e['summary']}")
-
     # pending work (handoff-aware)
     open_tasks, reviews, open_tickets = state.read_pending()
     if open_tasks:
@@ -112,6 +104,14 @@ def on_session_start(session_id="", platform="", **kwargs):
             parts.append("[fabric] from other agents:")
             for f in feedback:
                 parts.append(f"  {f}")
+
+    # recent entries
+    entries = state.read_recent(limit=5)
+    if entries:
+        parts.append("[fabric] recent activity:")
+        for e in entries:
+            ts = e["timestamp"][:16] if e["timestamp"] else "?"
+            parts.append(f"  [{ts}] {e['agent']}: {e['summary']}")
 
     # creative state
     if creative["questions"]:

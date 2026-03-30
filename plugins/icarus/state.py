@@ -63,7 +63,7 @@ def save_creative(s):
 # ── Fabric I/O ───────────────────────────────────────────
 
 def write_entry(entry_type, content, summary, tier="hot", tags="", platform="cli",
-                status="", outcome="", review_of="", revises="", customer_id=""):
+                status="", outcome="", review_of="", revises="", customer_id="", assigned_to=""):
     """Write a fabric entry with full schema v1 fields. Returns the filepath."""
     FABRIC_DIR.mkdir(parents=True, exist_ok=True)
     now = datetime.now(timezone.utc)
@@ -103,6 +103,8 @@ def write_entry(entry_type, content, summary, tier="hot", tags="", platform="cli
         lines.append(f"revises: {revises}")
     if customer_id:
         lines.append(f"customer_id: {customer_id}")
+    if assigned_to:
+        lines.append(f"assigned_to: {assigned_to}")
     lines.extend(["---", "", content])
 
     path = FABRIC_DIR / filename
@@ -171,7 +173,7 @@ def _parse_head(filepath, max_bytes=800):
     text = filepath.read_text("utf-8")[:max_bytes]
     fields = {}
     for key in ("agent", "type", "tier", "status", "summary", "timestamp",
-                "review_of", "revises", "customer_id", "id", "outcome"):
+                "review_of", "revises", "customer_id", "assigned_to", "id", "outcome"):
         m = re.search(rf"^{key}: (.+)$", text, re.MULTILINE)
         if m:
             fields[key] = m.group(1)
@@ -183,9 +185,9 @@ def read_pending(customer_id=None):
     """Find entries needing this agent's attention.
 
     Returns three lists:
-      open_tasks  - status:open entries from OTHER agents (work to pick up)
+      open_tasks  - status:open entries explicitly assigned to THIS agent
       reviews     - type:review entries from OTHER agents that review THIS agent's work
-      open_tickets - status:open entries with customer_id (support workflow)
+      open_tickets - status:open customer-scoped entries explicitly assigned to THIS agent
     """
     if not FABRIC_DIR.exists():
         return [], [], []
@@ -199,8 +201,12 @@ def read_pending(customer_id=None):
         h = _parse_head(f)
         entry_agent = h.get("agent", "")
 
-        # open tasks from other agents
+        assigned_to = h.get("assigned_to", "").strip()
+
+        # open tasks from other agents that explicitly target this agent
         if h.get("status") == "open" and entry_agent != agent:
+            if not agent or assigned_to != agent:
+                continue
             if customer_id and h.get("customer_id") != customer_id:
                 continue
             open_tasks.append(h)
@@ -211,8 +217,10 @@ def read_pending(customer_id=None):
             if agent and ref.startswith(f"{agent}:"):
                 reviews.append(h)
 
-        # open tickets with customer_id
+        # open tickets with customer_id explicitly assigned to this agent
         if h.get("status") == "open" and h.get("customer_id"):
+            if not agent or assigned_to != agent:
+                continue
             if customer_id and h.get("customer_id") != customer_id:
                 continue
             if h not in open_tasks:

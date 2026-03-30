@@ -80,6 +80,10 @@ FABRIC_WRITE = {
                 "type": "string",
                 "description": "Customer/account scope. For support: prevents cross-contamination in retrieval.",
             },
+            "assigned_to": {
+                "type": "string",
+                "description": "Target Hermes agent name for a handoff. Required for status:'open' entries you expect another agent to pick up via fabric_pending.",
+            },
         },
         "required": ["type", "content", "summary"],
     },
@@ -89,9 +93,9 @@ FABRIC_PENDING = {
     "name": "fabric_pending",
     "description": (
         "Show work waiting for your attention. Finds: (1) open entries from other "
-        "agents that need pickup — tasks to implement, code to review, tickets to "
+        "agents explicitly assigned to you — tasks to implement, code to review, tickets to "
         "resolve. (2) Reviews of YOUR work from other agents — feedback to act on. "
-        "(3) Open customer tickets if you're in a support workflow. "
+        "(3) Open customer tickets assigned to you if you're in a support workflow. "
         "Use this at session start to decide what to work on."
     ),
     "parameters": {

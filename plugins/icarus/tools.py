@@ -43,6 +43,7 @@ def fabric_write(args: dict, **kwargs) -> str:
             review_of=args.get("review_of", ""),
             revises=args.get("revises", ""),
             customer_id=args.get("customer_id", ""),
+            assigned_to=args.get("assigned_to", ""),
         )
         return _json({"status": "written", "path": path})
     except Exception as e:
