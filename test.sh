@@ -492,6 +492,52 @@ else:
     print('  pass: project boost (no entries to compare)')
 " || fail "project boost"
 
+# Test: source handoff entries outrank generic session summaries
+cat > "$RD/handoff-task.md" << 'ENTRY'
+---
+id: 8371866a
+agent: icarus
+platform: cli
+timestamp: 2026-03-30T10:00:00Z
+type: task
+tier: hot
+summary: handoff smoke for daedalus
+status: open
+assigned_to: daedalus
+---
+
+Review the relay patch and confirm pending handoff pickup works. Include token amber relay.
+ENTRY
+cat > "$RD/handoff-session.md" << 'ENTRY'
+---
+id: 91aa22bc
+agent: icarus
+platform: cli
+timestamp: 2026-03-30T10:05:00Z
+type: session
+tier: hot
+summary: discussed amber relay handoff in session recap
+status: completed
+---
+
+We talked about the amber relay handoff and pending pickup during the session.
+ENTRY
+
+python3 -c "
+from pathlib import Path
+import importlib.util
+spec = importlib.util.spec_from_file_location('fr', '$SCRIPT_DIR/fabric-retrieve.py')
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+mod.FABRIC_DIR = Path('$RD')
+
+results = mod.retrieve('amber relay handoff', max_results=5)
+assert results, 'no results for amber relay handoff'
+top = results[0][1]
+assert top.get('type') == 'task', f\"expected task to outrank session, got {top.get('type')}: {top.get('summary','')}\"
+print('  pass: source handoff task outranks session summary')
+" || fail "handoff source ranking"
+
 rm -rf "$RD"
 
 # Test: oversized entry skipped by budget
@@ -573,6 +619,124 @@ if [ $? -eq 0 ]; then
 else
     fail "icarus theme extraction regression"
 fi
+
+# Test: icarus plugin fabric_write validation
+echo ""
+echo "icarus plugin validation"
+echo ""
+
+PV_DIR=$(mktemp -d)
+trap "rm -rf $T $PV_DIR" EXIT
+mkdir -p "$PV_DIR/fabric"
+
+python3 - <<PV
+import importlib.util, sys, types, json, os
+from pathlib import Path
+
+os.environ["FABRIC_DIR"] = "$PV_DIR/fabric"
+os.environ["HERMES_AGENT_NAME"] = "daedalus"
+os.environ["HERMES_HOME"] = "$PV_DIR"
+
+plugin_dir = "$SCRIPT_DIR/plugins/icarus"
+ns = types.ModuleType("hermes_plugins")
+ns.__path__ = []
+ns.__package__ = "hermes_plugins"
+sys.modules["hermes_plugins"] = ns
+spec = importlib.util.spec_from_file_location(
+    "hermes_plugins.icarus", f"{plugin_dir}/__init__.py",
+    submodule_search_locations=[plugin_dir])
+mod = importlib.util.module_from_spec(spec)
+mod.__package__ = "hermes_plugins.icarus"
+mod.__path__ = [plugin_dir]
+sys.modules["hermes_plugins.icarus"] = mod
+spec.loader.exec_module(mod)
+
+errors = 0
+
+def check(label, result_json, expect_error):
+    global errors
+    r = json.loads(result_json)
+    got_error = "error" in r
+    if got_error == expect_error:
+        print(f"  pass: {label}")
+    else:
+        print(f"  FAIL: {label} (got {'error' if got_error else 'ok'}, expected {'error' if expect_error else 'ok'})")
+        if got_error:
+            print(f"        {r['error']}")
+        errors += 1
+
+# type=review without review_of -> error
+check("review without review_of",
+    mod.tools.fabric_write({"type": "review", "content": "looks good", "summary": "approved"}),
+    expect_error=True)
+
+# status=open without assigned_to -> error
+check("open without assigned_to",
+    mod.tools.fabric_write({"type": "task", "content": "do this", "summary": "task", "status": "open"}),
+    expect_error=True)
+
+# review_of with bad format -> error
+check("review_of empty id",
+    mod.tools.fabric_write({"type": "review", "content": "x", "summary": "x", "review_of": "icarus:"}),
+    expect_error=True)
+
+check("review_of empty agent",
+    mod.tools.fabric_write({"type": "review", "content": "x", "summary": "x", "review_of": ":abc12345"}),
+    expect_error=True)
+
+check("review_of id too short",
+    mod.tools.fabric_write({"type": "review", "content": "x", "summary": "x", "review_of": "icarus:ab"}),
+    expect_error=True)
+
+check("revises bad format",
+    mod.tools.fabric_write({"type": "task", "content": "x", "summary": "x", "revises": ":"}),
+    expect_error=True)
+
+# review_of pointing to missing entry -> error
+check("review_of missing entry",
+    mod.tools.fabric_write({"type": "review", "content": "x", "summary": "x", "review_of": "icarus:deadbeef"}),
+    expect_error=True)
+
+# revises pointing to missing entry -> error
+check("revises missing entry",
+    mod.tools.fabric_write({"type": "task", "content": "x", "summary": "x", "revises": "icarus:deadbeef"}),
+    expect_error=True)
+
+# create a real entry, then review_of pointing to it -> ok
+r = json.loads(mod.tools.fabric_write({
+    "type": "code-session", "content": "built rate limiter", "summary": "rate limiter",
+    "status": "open", "assigned_to": "daedalus"}))
+assert "error" not in r, f"setup write failed: {r}"
+# extract the entry id from the file
+import re
+entry_text = Path(r["path"]).read_text()[:500]
+entry_id = re.search(r"^id: (.+)$", entry_text, re.MULTILINE).group(1)
+entry_agent = re.search(r"^agent: (.+)$", entry_text, re.MULTILINE).group(1)
+
+check("review_of existing entry",
+    mod.tools.fabric_write({
+        "type": "review", "content": "race condition found",
+        "summary": "reviewed rate limiter",
+        "review_of": f"{entry_agent}:{entry_id}"}),
+    expect_error=False)
+
+check("revises existing entry",
+    mod.tools.fabric_write({
+        "type": "code-session", "content": "fixed race condition",
+        "summary": "fixed rate limiter",
+        "revises": f"{entry_agent}:{entry_id}"}),
+    expect_error=False)
+
+# plain task (no linking fields) -> ok
+check("plain task no links",
+    mod.tools.fabric_write({"type": "task", "content": "implemented feature", "summary": "new feature"}),
+    expect_error=False)
+
+sys.exit(errors)
+PV
+[ $? -eq 0 ] && pass "icarus plugin validation suite" || fail "icarus plugin validation suite"
+
+rm -rf "$PV_DIR"
 
 # Test: icarus training includes n_checkpoints
 grep -q '"n_checkpoints": ft_checkpoints' "$SCRIPT_DIR/plugins/icarus/state.py" && pass "icarus training sends n_checkpoints" || fail "icarus training missing n_checkpoints"

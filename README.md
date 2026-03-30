@@ -123,15 +123,71 @@ Or tell your agent on any platform: "train yourself" and it handles export, uplo
 
 ## Hermes plugin
 
-Cross-platform memory and self-training via hermes v0.5.0 plugin hooks. Install the `plugins/icarus/` plugin in any hermes agent's home directory:
+Cross-platform memory, handoff workflows, and self-training via hermes plugin hooks. Install `plugins/icarus/` in any agent's home directory.
 
-- **on_session_end**: auto-writes session summary to `~/fabric/`
-- **on_session_start**: loads recent fabric entries and injects them as agent context
-- **pre_llm_call**: retrieves relevant shared memory on topic change
-- **post_llm_call**: captures decisions and tracks learnings/questions in real time
-- **tools**: `fabric_recall`, `fabric_write`, `fabric_search`, `fabric_export`, `fabric_train`, `fabric_train_status`
+**7 tools:**
 
-The plugin gives Hermes agents both shared memory and a fine-tuning path.
+| Tool | Purpose |
+|------|---------|
+| `fabric_recall` | Ranked retrieval from shared memory |
+| `fabric_write` | Write entries with linking fields (`review_of`, `revises`, `assigned_to`) |
+| `fabric_search` | Keyword grep |
+| `fabric_pending` | Show work assigned to this agent |
+| `fabric_export` | Export training pairs |
+| `fabric_train` | Start Together AI fine-tune |
+| `fabric_train_status` | Check job progress |
+
+**4 hooks:** context injection at session start (including pending handoffs), memory retrieval on topic change, decision capture with status detection, session summary on end.
+
+**Runtime validation:** `type=review` requires `review_of`. `status=open` requires `assigned_to`. `review_of` and `revises` must be `agent:id` format pointing to an entry that exists in fabric. Malformed or dangling refs are rejected at write time.
+
+### Builder -> reviewer -> fix
+
+The plugin supports linked handoff chains. Here's the exact flow:
+
+```
+# 1. Builder finishes work, hands off to reviewer
+fabric_write(
+  type="code-session",
+  content="Built sliding window rate limiter with Redis sorted sets...",
+  summary="rate limiter ready for review",
+  status="open",
+  assigned_to="daedalus"
+)
+# writes entry with id: a3f29b01
+
+# 2. Reviewer starts session, sees the handoff
+#    on_session_start injects:
+#    [fabric] 1 item(s) assigned to you:
+#      - icarus: rate limiter ready for review (code-session, id a3f29b01)
+
+# 3. Reviewer evaluates and writes a linked review
+fabric_write(
+  type="review",
+  content="MUST FIX: race condition in zadd/zcard...",
+  summary="reviewed rate limiter: race condition",
+  review_of="icarus:a3f29b01",
+  status="completed",
+  outcome="MUST FIX race condition"
+)
+# writes entry with id: d5e1f8bb
+
+# 4. Builder starts next session, sees the review
+#    on_session_start injects:
+#    [fabric] 1 review(s) of your work:
+#      - daedalus: reviewed rate limiter (review id d5e1f8bb, of icarus:a3f29b01)
+
+# 5. Builder fixes and links the revision
+fabric_write(
+  type="code-session",
+  content="Fixed race condition: wrapped zadd+zcard in MULTI/EXEC...",
+  summary="fixed rate limiter after review",
+  revises="icarus:a3f29b01",
+  status="completed"
+)
+```
+
+The same pattern works for researcher -> implementer (research entry with `status=open`, implementer writes task), and triage -> resolver (task with `customer_id` and `status=open`, resolver writes resolution carrying `customer_id` forward).
 
 ## Claude Code hooks
 
