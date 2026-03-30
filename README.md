@@ -21,7 +21,51 @@ cd icarus-daedalus
 bash setup.sh
 ```
 
-Or for Claude Code only:
+## Hermes plugin (quick start)
+
+Add cross-platform memory and self-training to any Hermes agent in 3 commands:
+
+```bash
+git clone https://github.com/esaradev/icarus-daedalus.git
+cd icarus-daedalus
+
+# install to your hermes (global — all agents get it)
+cp -r plugins/icarus ~/.hermes/plugins/
+cp fabric-retrieve.py ~/.hermes/plugins/icarus/
+cp export-training.py ~/.hermes/plugins/icarus/
+```
+
+Or install per-agent:
+
+```bash
+cp -r plugins/icarus ~/.hermes-YOUR_AGENT/plugins/
+cp fabric-retrieve.py ~/.hermes-YOUR_AGENT/plugins/icarus/
+cp export-training.py ~/.hermes-YOUR_AGENT/plugins/icarus/
+```
+
+Restart Hermes. Run `/plugins` to verify:
+
+```
+Plugins (1):
+  ✓ icarus v0.2.0 (6 tools, 4 hooks)
+```
+
+**What your agent gets:**
+
+| Tool | What it does |
+|------|-------------|
+| `fabric_recall` | Ranked retrieval from shared memory (keyword, project, agent, recency scoring) |
+| `fabric_write` | Write entries any agent on any platform can read |
+| `fabric_search` | Keyword grep across all fabric entries |
+| `fabric_export` | Export fabric entries as fine-tuning pairs (OpenAI, Together, HuggingFace formats) |
+| `fabric_train` | Upload + start a Together AI fine-tune from your fabric data |
+| `fabric_train_status` | Check job progress, get the output model ID when done |
+
+Plus 4 automatic hooks: context injection on session start, relevant memory retrieval on topic change, decision capture after every response, session summary on end.
+
+For self-training, set `TOGETHER_API_KEY` in your agent's `.env`. The agent can then call `fabric_export` to check pair count and `fabric_train` to fine-tune itself.
+
+## Claude Code only
 
 ```bash
 node cli/fabric.js init
@@ -78,13 +122,15 @@ Or tell your agent on any platform: "train yourself" and it handles export, uplo
 
 ## Hermes plugin
 
-Zero-friction memory via hermes v0.5.0 plugin hooks. Install the `plugins/fabric-memory/` plugin in any hermes agent's home directory:
+Cross-platform memory and self-training via hermes v0.5.0 plugin hooks. Install the `plugins/icarus/` plugin in any hermes agent's home directory:
 
 - **on_session_end**: auto-writes session summary to `~/fabric/`
 - **on_session_start**: loads recent fabric entries and injects them as agent context
-- **post_llm_call**: detects decisions and completions in real time, writes them to fabric
+- **pre_llm_call**: retrieves relevant shared memory on topic change
+- **post_llm_call**: captures decisions and tracks learnings/questions in real time
+- **tools**: `fabric_recall`, `fabric_write`, `fabric_search`, `fabric_export`, `fabric_train`, `fabric_train_status`
 
-The agent never calls fabric_write. The plugin does it.
+The plugin gives Hermes agents both shared memory and a fine-tuning path.
 
 ## Claude Code hooks
 
@@ -125,7 +171,7 @@ fabric-sync.sh           git-based cross-machine sync
 cli/fabric.js            npx icarus-fabric init|status|context|sync
 hooks/on-stop.sh         Claude Code auto-write hook
 hooks/on-start.sh        Claude Code context loading hook
-plugins/fabric-memory/   hermes plugin (on_session_end, on_session_start, post_llm_call)
+plugins/icarus/          hermes plugin (memory + recall + training + hooks)
 scripts/self-train.sh    export + upload + fine-tune pipeline for Together AI
 skills/fabric-memory/    hermes skill for manual fabric access
 skills/self-train/       hermes skill for conversational self-training

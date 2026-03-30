@@ -8,6 +8,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 AGENTS_FILE="$SCRIPT_DIR/agents.yml"
 
 RED='\033[0;31m'
@@ -101,12 +102,43 @@ fi
 [ -f "$HOME/.hermes/config.yaml" ] && cp "$HOME/.hermes/config.yaml" "$HERMES_HOME/config.yaml"
 
 # Copy skills
-if [ -d "$SCRIPT_DIR/skills" ]; then
-    cp -r "$SCRIPT_DIR/skills/"* "$HERMES_HOME/skills/" 2>/dev/null || true
+if [ -d "$REPO_DIR/skills" ]; then
+    cp -r "$REPO_DIR/skills/"* "$HERMES_HOME/skills/" 2>/dev/null || true
+fi
+
+# Copy plugins
+mkdir -p "$HERMES_HOME/plugins"
+if [ -d "$REPO_DIR/plugins/icarus" ]; then
+    cp -r "$REPO_DIR/plugins/icarus" "$HERMES_HOME/plugins/"
+    [ -f "$REPO_DIR/fabric-retrieve.py" ] && cp "$REPO_DIR/fabric-retrieve.py" "$HERMES_HOME/plugins/icarus/"
+    [ -f "$REPO_DIR/export-training.py" ] && cp "$REPO_DIR/export-training.py" "$HERMES_HOME/plugins/icarus/"
 fi
 
 # Init memory
 touch "$HERMES_HOME/memories/MEMORY.md"
+
+# Ensure copied env does not keep another agent's identity
+if grep -q '^HERMES_AGENT_NAME=' "$HERMES_HOME/.env" 2>/dev/null; then
+    python3 - "$HERMES_HOME/.env" "$AGENT_NAME" <<'PY'
+import sys
+path, agent = sys.argv[1], sys.argv[2]
+lines = open(path, encoding="utf-8").read().splitlines()
+out = []
+replaced = False
+for line in lines:
+    if line.startswith("HERMES_AGENT_NAME="):
+        out.append(f"HERMES_AGENT_NAME={agent}")
+        replaced = True
+    else:
+        out.append(line)
+if not replaced:
+    out.append(f"HERMES_AGENT_NAME={agent}")
+with open(path, "w", encoding="utf-8") as f:
+    f.write("\n".join(out) + "\n")
+PY
+else
+    echo "HERMES_AGENT_NAME=$AGENT_NAME" >> "$HERMES_HOME/.env"
+fi
 
 # Add to agents.yml
 [ -f "$AGENTS_FILE" ] || printf "agents:\n" > "$AGENTS_FILE"
@@ -123,6 +155,7 @@ echo ""
 echo "  home:      $HERMES_HOME"
 echo "  soul:      $HERMES_HOME/SOUL.md"
 echo "  role:      $AGENT_ROLE"
+echo "  plugins:   icarus"
 echo ""
 echo "  next steps:"
 echo "    edit $HERMES_HOME/.env to add platform tokens for this agent"

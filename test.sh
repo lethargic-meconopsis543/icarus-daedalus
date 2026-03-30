@@ -536,6 +536,93 @@ grep -q "_load_retriever\|_get_retriever" "$SCRIPT_DIR/plugins/fabric-memory/__i
 # Test: plugin.yaml declares pre_llm_call
 grep -q "pre_llm_call" "$SCRIPT_DIR/plugins/fabric-memory/plugin.yaml" && pass "plugin.yaml declares pre_llm_call" || fail "plugin.yaml missing pre_llm_call"
 
+# Test: add-agent.sh provisions hermes plugins and identity correctly
+grep -q 'REPO_DIR="$(cd "\$SCRIPT_DIR/../.." && pwd)"' "$SCRIPT_DIR/examples/hermes-demo/add-agent.sh" && pass "add-agent resolves repo root" || fail "add-agent missing repo root resolution"
+grep -q 'cp -r "\$REPO_DIR/plugins/icarus"' "$SCRIPT_DIR/examples/hermes-demo/add-agent.sh" && pass "add-agent copies icarus plugin" || fail "add-agent missing icarus plugin copy"
+grep -q 'cp -r "\$REPO_DIR/skills/"' "$SCRIPT_DIR/examples/hermes-demo/add-agent.sh" && pass "add-agent copies skills from repo root" || fail "add-agent missing repo-root skills copy"
+grep -q 'HERMES_AGENT_NAME=' "$SCRIPT_DIR/examples/hermes-demo/add-agent.sh" && pass "add-agent rewrites HERMES_AGENT_NAME" || fail "add-agent missing HERMES_AGENT_NAME rewrite"
+
+# Test: icarus theme extraction keeps words, not first 3 characters
+python3 - <<PY
+import importlib.util
+import sys, types
+pkg = types.ModuleType("icarus")
+pkg.__path__ = ["$SCRIPT_DIR/plugins/icarus"]
+sys.modules["icarus"] = pkg
+state = types.ModuleType("icarus.state")
+state.session_id = ""
+state.exchanges = []
+state.AGENT_NAME = "icarus"
+state.load_creative = lambda: {"cycle": 0, "themes": [], "questions": [], "learnings": []}
+state.save_creative = lambda s: None
+state.load_soul = lambda: ""
+state.read_recent = lambda limit=5: []
+state.read_cross_agent = lambda limit=3: []
+state.recall = lambda *args, **kwargs: []
+state.write_entry = lambda *args, **kwargs: None
+state.write_memory_file = lambda *args, **kwargs: None
+sys.modules["icarus.state"] = state
+spec = importlib.util.spec_from_file_location("icarus.hooks", "$SCRIPT_DIR/plugins/icarus/hooks.py")
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+assert mod._extract_theme("Built billing workflow automation for invoices") == "built billing workflow"
+print("ok")
+PY
+if [ $? -eq 0 ]; then
+    pass "icarus theme extraction keeps words"
+else
+    fail "icarus theme extraction regression"
+fi
+
+# Test: icarus training includes n_checkpoints
+grep -q '"n_checkpoints": ft_checkpoints' "$SCRIPT_DIR/plugins/icarus/state.py" && pass "icarus training sends n_checkpoints" || fail "icarus training missing n_checkpoints"
+
+# Test: icarus tool JSON handles datetime-like values from YAML parsing
+python3 - <<PY
+import importlib.util, os, sys, types
+from pathlib import Path
+plugin_dir = Path("$SCRIPT_DIR/plugins/icarus")
+pkg = types.ModuleType("icarus")
+pkg.__path__ = [str(plugin_dir)]
+sys.modules["icarus"] = pkg
+os.environ["HERMES_HOME"] = str(Path.home() / ".hermes-test")
+os.environ["FABRIC_DIR"] = "/tmp/icarus-tmp-fabric-json"
+os.environ["HERMES_AGENT_NAME"] = "tester"
+state_spec = importlib.util.spec_from_file_location("icarus.state", plugin_dir / "state.py")
+state = importlib.util.module_from_spec(state_spec)
+sys.modules["icarus.state"] = state
+state_spec.loader.exec_module(state)
+tools_spec = importlib.util.spec_from_file_location("icarus.tools", plugin_dir / "tools.py")
+tools = importlib.util.module_from_spec(tools_spec)
+sys.modules["icarus.tools"] = tools
+tools_spec.loader.exec_module(tools)
+fabric_dir = Path(os.environ["FABRIC_DIR"])
+fabric_dir.mkdir(parents=True, exist_ok=True)
+(fabric_dir / "sample.md").write_text("""---
+id: abc123
+agent: other
+platform: cli
+timestamp: 2026-03-30T05:54:33Z
+type: note
+tier: hot
+summary: quartz relay ladder
+project_id: demo
+session_id: sess-1
+---
+
+Cross-agent test from Icarus to Daedalus. Retrieval target: quartz relay ladder.
+""", encoding="utf-8")
+payload = tools.fabric_recall({"query": "quartz relay ladder"})
+assert "Object of type datetime" not in payload
+assert "\"entries\"" in payload
+print("ok")
+PY
+if [ $? -eq 0 ]; then
+    pass "icarus recall serializes datetime results"
+else
+    fail "icarus recall datetime serialization regression"
+fi
+
 # Test: on-start.sh combines project + task text
 grep -q "CLAUDE.md\|README.md" "$SCRIPT_DIR/hooks/on-start.sh" && pass "on-start uses project + task context" || fail "on-start only uses project name"
 

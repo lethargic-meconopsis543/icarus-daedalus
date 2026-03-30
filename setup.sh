@@ -389,12 +389,12 @@ ENVEOF
     # skills
     [ -d "$SCRIPT_DIR/skills" ] && cp -r "$SCRIPT_DIR/skills/"* "$h/skills/" 2>/dev/null || true
 
-    # fabric-memory plugin (auto-writes to fabric, loads context on start)
+    # plugins — icarus replaces fabric-memory (superset: memory + training + hooks)
     mkdir -p "$h/plugins"
-    if [ -d "$SCRIPT_DIR/plugins/fabric-memory" ]; then
-        cp -r "$SCRIPT_DIR/plugins/fabric-memory" "$h/plugins/"
-        # Copy retrieval helper into the plugin so it works from any install location
-        [ -f "$SCRIPT_DIR/fabric-retrieve.py" ] && cp "$SCRIPT_DIR/fabric-retrieve.py" "$h/plugins/fabric-memory/"
+    if [ -d "$SCRIPT_DIR/plugins/icarus" ]; then
+        cp -r "$SCRIPT_DIR/plugins/icarus" "$h/plugins/"
+        [ -f "$SCRIPT_DIR/fabric-retrieve.py" ] && cp "$SCRIPT_DIR/fabric-retrieve.py" "$h/plugins/icarus/"
+        [ -f "$SCRIPT_DIR/export-training.py" ] && cp "$SCRIPT_DIR/export-training.py" "$h/plugins/icarus/"
     fi
 
     # set agent name env var for the plugin

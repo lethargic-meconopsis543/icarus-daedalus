@@ -1,0 +1,16 @@
+name: icarus
+version: 0.2.0
+description: Cross-platform memory and self-training for any Hermes agent. Provides fabric read/write/search tools, training data export, Together AI fine-tuning, and automatic context injection.
+author: icarus-daedalus
+provides_tools:
+  - fabric_recall
+  - fabric_write
+  - fabric_search
+  - fabric_export
+  - fabric_train
+  - fabric_train_status
+provides_hooks:
+  - on_session_start
+  - pre_llm_call
+  - post_llm_call
+  - on_session_end
