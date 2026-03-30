@@ -35,17 +35,18 @@ FABRIC_RECALL = {
 FABRIC_WRITE = {
     "name": "fabric_write",
     "description": (
-        "Write a new entry to the shared fabric memory. All agents on all platforms "
-        "can read what you write. Use for decisions, completed work, findings, "
-        "session notes, or anything worth remembering across sessions. "
-        "The entry is written as hot-tier markdown with YAML frontmatter."
+        "Write a new entry to shared fabric memory. All agents on all platforms "
+        "can read it. Use for decisions, completed work, findings, reviews, "
+        "or anything worth remembering. Set status to 'open' when handing work "
+        "to another agent. Use review_of to link a review to the original work. "
+        "Use revises to link a fix to the entry it fixes."
     ),
     "parameters": {
         "type": "object",
         "properties": {
             "type": {
                 "type": "string",
-                "description": "Entry type: decision, session, code-session, research, review, task, note",
+                "description": "Entry type: task, decision, review, resolution, research, code-session, session, note",
             },
             "content": {
                 "type": "string",
@@ -59,8 +60,49 @@ FABRIC_WRITE = {
                 "type": "string",
                 "description": "Comma-separated tags (optional)",
             },
+            "status": {
+                "type": "string",
+                "description": "Lifecycle state: open (needs attention), completed, blocked, superseded. Use 'open' to hand work to the next agent.",
+            },
+            "outcome": {
+                "type": "string",
+                "description": "Result or conclusion. What happened. Most valuable field for training.",
+            },
+            "review_of": {
+                "type": "string",
+                "description": "Entry being reviewed, format: agent:id (e.g. icarus:a3f29b01). Links your review to the original work.",
+            },
+            "revises": {
+                "type": "string",
+                "description": "Entry being fixed/revised, format: agent:id. Creates a revision chain.",
+            },
+            "customer_id": {
+                "type": "string",
+                "description": "Customer/account scope. For support: prevents cross-contamination in retrieval.",
+            },
         },
         "required": ["type", "content", "summary"],
+    },
+}
+
+FABRIC_PENDING = {
+    "name": "fabric_pending",
+    "description": (
+        "Show work waiting for your attention. Finds: (1) open entries from other "
+        "agents that need pickup — tasks to implement, code to review, tickets to "
+        "resolve. (2) Reviews of YOUR work from other agents — feedback to act on. "
+        "(3) Open customer tickets if you're in a support workflow. "
+        "Use this at session start to decide what to work on."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "customer_id": {
+                "type": "string",
+                "description": "Filter to a specific customer (optional)",
+            },
+        },
+        "required": [],
     },
 }
 

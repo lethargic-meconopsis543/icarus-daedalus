@@ -38,6 +38,11 @@ def fabric_write(args: dict, **kwargs) -> str:
             content=content,
             summary=summary,
             tags=args.get("tags", ""),
+            status=args.get("status", ""),
+            outcome=args.get("outcome", ""),
+            review_of=args.get("review_of", ""),
+            revises=args.get("revises", ""),
+            customer_id=args.get("customer_id", ""),
         )
         return _json({"status": "written", "path": path})
     except Exception as e:
@@ -52,6 +57,22 @@ def fabric_search(args: dict, **kwargs) -> str:
     try:
         results = state.search_entries(query)
         return _json({"query": query, "count": len(results), "results": results})
+    except Exception as e:
+        return _json({"error": str(e)})
+
+
+def fabric_pending(args: dict, **kwargs) -> str:
+    """Show work waiting for this agent."""
+    try:
+        open_tasks, reviews, open_tickets = state.read_pending(
+            customer_id=args.get("customer_id"),
+        )
+        return _json({
+            "open_tasks": open_tasks,
+            "reviews_of_my_work": reviews,
+            "open_tickets": open_tickets,
+            "total": len(open_tasks) + len(reviews) + len(open_tickets),
+        })
     except Exception as e:
         return _json({"error": str(e)})
 

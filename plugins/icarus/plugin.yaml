@@ -6,6 +6,7 @@ provides_tools:
   - fabric_recall
   - fabric_write
   - fabric_search
+  - fabric_pending
   - fabric_export
   - fabric_train
   - fabric_train_status

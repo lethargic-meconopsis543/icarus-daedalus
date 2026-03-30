@@ -62,8 +62,9 @@ def save_creative(s):
 
 # ── Fabric I/O ───────────────────────────────────────────
 
-def write_entry(entry_type, content, summary, tier="hot", tags="", platform="cli"):
-    """Write a fabric entry. Returns the filepath."""
+def write_entry(entry_type, content, summary, tier="hot", tags="", platform="cli",
+                status="", outcome="", review_of="", revises="", customer_id=""):
+    """Write a fabric entry with full schema v1 fields. Returns the filepath."""
     FABRIC_DIR.mkdir(parents=True, exist_ok=True)
     now = datetime.now(timezone.utc)
     ts = now.strftime("%Y-%m-%dT%H%MZ")
@@ -92,6 +93,16 @@ def write_entry(entry_type, content, summary, tier="hot", tags="", platform="cli
     ]
     if tags:
         lines.append(f"tags: [{tags}]")
+    if status:
+        lines.append(f"status: {status}")
+    if outcome:
+        lines.append(f"outcome: {outcome}")
+    if review_of:
+        lines.append(f"review_of: {review_of}")
+    if revises:
+        lines.append(f"revises: {revises}")
+    if customer_id:
+        lines.append(f"customer_id: {customer_id}")
     lines.extend(["---", "", content])
 
     path = FABRIC_DIR / filename
@@ -153,6 +164,64 @@ def read_cross_agent(limit=3):
         if len(out) >= limit:
             break
     return out
+
+
+def _parse_head(filepath, max_bytes=800):
+    """Parse frontmatter fields from a fabric entry header."""
+    text = filepath.read_text("utf-8")[:max_bytes]
+    fields = {}
+    for key in ("agent", "type", "tier", "status", "summary", "timestamp",
+                "review_of", "revises", "customer_id", "id", "outcome"):
+        m = re.search(rf"^{key}: (.+)$", text, re.MULTILINE)
+        if m:
+            fields[key] = m.group(1)
+    fields["file"] = filepath.name
+    return fields
+
+
+def read_pending(customer_id=None):
+    """Find entries needing this agent's attention.
+
+    Returns three lists:
+      open_tasks  - status:open entries from OTHER agents (work to pick up)
+      reviews     - type:review entries from OTHER agents that review THIS agent's work
+      open_tickets - status:open entries with customer_id (support workflow)
+    """
+    if not FABRIC_DIR.exists():
+        return [], [], []
+
+    agent = AGENT_NAME
+    open_tasks = []
+    reviews = []
+    open_tickets = []
+
+    for f in sorted(FABRIC_DIR.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True):
+        h = _parse_head(f)
+        entry_agent = h.get("agent", "")
+
+        # open tasks from other agents
+        if h.get("status") == "open" and entry_agent != agent:
+            if customer_id and h.get("customer_id") != customer_id:
+                continue
+            open_tasks.append(h)
+
+        # reviews of my work (from other agents)
+        if h.get("type") == "review" and entry_agent != agent:
+            ref = h.get("review_of", "")
+            if agent and ref.startswith(f"{agent}:"):
+                reviews.append(h)
+
+        # open tickets with customer_id
+        if h.get("status") == "open" and h.get("customer_id"):
+            if customer_id and h.get("customer_id") != customer_id:
+                continue
+            if h not in open_tasks:
+                open_tickets.append(h)
+
+        if len(open_tasks) + len(reviews) + len(open_tickets) >= 30:
+            break
+
+    return open_tasks, reviews, open_tickets
 
 
 def search_entries(query, limit=10):

@@ -2,14 +2,17 @@
 Icarus Plugin for Hermes
 ========================
 
-Cross-platform memory and self-training for any Hermes agent.
-Replaces fabric-memory with a superset: all memory hooks plus
-active tools for recall, write, search, export, and fine-tuning.
+Cross-platform memory, handoff workflows, and self-training
+for any Hermes agent. Optimized for multi-agent patterns:
+builder->reviewer, researcher->implementer, triage->resolver.
 
-Memory tools (agent calls these):
+Memory tools:
   fabric_recall        — ranked retrieval from shared fabric
-  fabric_write         — write entry to fabric (all platforms read it)
+  fabric_write         — write entry with full schema v1 (status, review_of, revises, customer_id)
   fabric_search        — keyword grep across fabric
+
+Workflow tools:
+  fabric_pending       — what needs my attention (open tasks, reviews of my work, tickets)
 
 Training tools:
   fabric_export        — export fabric entries as fine-tuning pairs
@@ -17,9 +20,9 @@ Training tools:
   fabric_train_status  — check job status, get output model ID
 
 Hooks (automatic):
-  on_session_start  — loads SOUL, recent context, cross-agent feedback
+  on_session_start  — loads SOUL, pending handoffs, reviews of your work, recent context
   pre_llm_call      — injects relevant memories on topic change
-  post_llm_call     — captures decisions, tracks learnings/questions
+  post_llm_call     — captures decisions with status, tracks learnings/questions
   on_session_end    — writes session summary, updates MEMORY.md
 """
 
@@ -39,6 +42,10 @@ def register(ctx):
     ctx.register_tool(name="fabric_search", toolset="fabric",
                       schema=schemas.FABRIC_SEARCH, handler=tools.fabric_search)
 
+    # workflow tools
+    ctx.register_tool(name="fabric_pending", toolset="fabric",
+                      schema=schemas.FABRIC_PENDING, handler=tools.fabric_pending)
+
     # training tools
     ctx.register_tool(name="fabric_export", toolset="fabric",
                       schema=schemas.FABRIC_EXPORT, handler=tools.fabric_export)
@@ -53,4 +60,4 @@ def register(ctx):
     ctx.register_hook("post_llm_call", hooks.post_llm_call)
     ctx.register_hook("on_session_end", hooks.on_session_end)
 
-    logger.info("icarus plugin registered (6 tools, 4 hooks)")
+    logger.info("icarus plugin registered (7 tools, 4 hooks)")

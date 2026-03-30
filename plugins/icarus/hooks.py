@@ -13,6 +13,12 @@ _DECISION_RE = re.compile(
 )
 
 # ── Creative pattern detection ───────────────────────────
+_COMPLETION_RE = re.compile(
+    r"(?i)\b(completed|finished|done|shipped|deployed|resolved|closed|merged|fixed)\b"
+)
+_REVIEW_RE = re.compile(
+    r"(?i)\b(reviewed|review:|feedback:|MUST FIX|SHOULD FIX|approved|rejected|looks good|lgtm|nit:)\b"
+)
 _EVAL_RE = re.compile(
     r"(?i)\b(worked well|didn't work|failed|succeeded|learned|noticed|realized|discovered|finding|insight|improvement)\b"
 )
@@ -79,12 +85,33 @@ def on_session_start(session_id="", platform="", **kwargs):
             ts = e["timestamp"][:16] if e["timestamp"] else "?"
             parts.append(f"  [{ts}] {e['agent']}: {e['summary']}")
 
-    # cross-agent feedback
-    feedback = state.read_cross_agent(3)
-    if feedback:
-        parts.append("[fabric] from other agents:")
-        for f in feedback:
-            parts.append(f"  {f}")
+    # pending work (handoff-aware)
+    open_tasks, reviews, open_tickets = state.read_pending()
+    if open_tasks:
+        parts.append(f"[fabric] {len(open_tasks)} open item(s) waiting for pickup:")
+        for t in open_tasks[:5]:
+            ts = t.get("timestamp", "")[:16] or "?"
+            parts.append(f"  [{ts}] {t.get('agent', '?')}: {t.get('summary', '?')} ({t.get('type', '?')})")
+
+    if reviews:
+        parts.append(f"[fabric] {len(reviews)} review(s) of your work:")
+        for r in reviews[:5]:
+            ts = r.get("timestamp", "")[:16] or "?"
+            parts.append(f"  [{ts}] {r.get('agent', '?')}: {r.get('summary', '?')}")
+
+    if open_tickets:
+        parts.append(f"[fabric] {len(open_tickets)} open ticket(s):")
+        for t in open_tickets[:5]:
+            cid = t.get("customer_id", "?")
+            parts.append(f"  [{cid}] {t.get('summary', '?')} (from {t.get('agent', '?')})")
+
+    # cross-agent feedback (non-pending items)
+    if not open_tasks and not reviews:
+        feedback = state.read_cross_agent(3)
+        if feedback:
+            parts.append("[fabric] from other agents:")
+            for f in feedback:
+                parts.append(f"  {f}")
 
     # creative state
     if creative["questions"]:
@@ -141,10 +168,13 @@ def post_llm_call(session_id="", user_message="", assistant_response="", platfor
     agent = state.AGENT_NAME or "agent"
     plat = platform or "cli"
 
-    # capture decisions (from fabric-memory logic)
+    # capture decisions
     if _DECISION_RE.search(assistant_response) and len(assistant_response) > 100:
         summary = assistant_response[:80].replace("\n", " ")
-        state.write_entry("decision", assistant_response[:500], summary, platform=plat)
+        # detect if this completes work (status: completed) or is still open
+        entry_status = "completed" if _COMPLETION_RE.search(assistant_response) else ""
+        state.write_entry("decision", assistant_response[:500], summary,
+                         platform=plat, status=entry_status)
 
     # creative tracking
     creative = state.load_creative()
