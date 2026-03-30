@@ -84,25 +84,28 @@ def on_session_start(session_id="", platform="", **kwargs):
         for t in open_tasks[:5]:
             ts = t.get("timestamp", "")[:16] or "?"
             assignee = t.get("assigned_to", "") or "?"
+            entry_id = t.get("id", "?")
             parts.append(
                 f"  [{ts}] {t.get('agent', '?')} -> {assignee}: "
-                f"{t.get('summary', '?')} ({t.get('type', '?')})"
+                f"{t.get('summary', '?')} ({t.get('type', '?')}, id {entry_id})"
             )
 
     if reviews:
         parts.append(f"[fabric] {len(reviews)} review(s) of your work:")
         for r in reviews[:5]:
             ts = r.get("timestamp", "")[:16] or "?"
-            parts.append(f"  [{ts}] {r.get('agent', '?')}: {r.get('summary', '?')}")
+            entry_id = r.get("id", "?")
+            parts.append(f"  [{ts}] {r.get('agent', '?')}: {r.get('summary', '?')} (id {entry_id})")
 
     if open_tickets:
         parts.append(f"[fabric] {len(open_tickets)} open ticket(s):")
         for t in open_tickets[:5]:
             cid = t.get("customer_id", "?")
             assignee = t.get("assigned_to", "") or "?"
+            entry_id = t.get("id", "?")
             parts.append(
                 f"  [{cid}] {t.get('summary', '?')} "
-                f"(from {t.get('agent', '?')} -> {assignee})"
+                f"(from {t.get('agent', '?')} -> {assignee}, id {entry_id})"
             )
 
     # cross-agent feedback (non-pending items)

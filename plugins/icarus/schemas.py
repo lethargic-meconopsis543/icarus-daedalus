@@ -96,7 +96,7 @@ FABRIC_PENDING = {
         "agents explicitly assigned to you — tasks to implement, code to review, tickets to "
         "resolve. (2) Reviews of YOUR work from other agents — feedback to act on. "
         "(3) Open customer tickets assigned to you if you're in a support workflow. "
-        "Use this at session start to decide what to work on."
+        "Returns full entry metadata including id so you can use exact review_of/revises links."
     ),
     "parameters": {
         "type": "object",
