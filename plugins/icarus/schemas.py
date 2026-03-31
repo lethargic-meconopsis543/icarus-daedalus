@@ -378,3 +378,34 @@ FABRIC_TELEMETRY = {
         "required": [],
     },
 }
+
+FABRIC_INIT_OBSIDIAN = {
+    "name": "fabric_init_obsidian",
+    "description": (
+        "Initialize the fabric directory as an Obsidian vault. Creates "
+        "daily/ directory for daily notes and .obsidian/ with minimal config. "
+        "Safe to call multiple times. After this, open ~/fabric/ in Obsidian "
+        "to browse entries with wikilinks and daily notes. "
+        "Set ICARUS_OBSIDIAN=1 in .env to enable ongoing Obsidian formatting."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+    },
+}
+
+FABRIC_REPORT = {
+    "name": "fabric_report",
+    "description": (
+        "Corpus health report. Shows: entry counts by type and training value, "
+        "verified entry count, recall usage rates by entry type, and estimated "
+        "trainable corpus size. Use periodically to understand whether your "
+        "memory is producing good training data."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+    },
+}

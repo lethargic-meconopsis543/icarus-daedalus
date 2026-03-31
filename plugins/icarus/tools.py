@@ -215,3 +215,20 @@ def fabric_telemetry(args: dict, **kwargs) -> str:
         return _json(result)
     except Exception as e:
         return _json({"error": str(e)})
+
+
+def fabric_init_obsidian(args: dict, **kwargs) -> str:
+    try:
+        from . import obsidian
+        result = obsidian.init_obsidian(state.FABRIC_DIR)
+        return _json(result)
+    except Exception as e:
+        return _json({"error": str(e)})
+
+
+def fabric_report(args: dict, **kwargs) -> str:
+    try:
+        result = state.build_weekly_report()
+        return _json(result)
+    except Exception as e:
+        return _json({"error": str(e)})
