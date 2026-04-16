@@ -1,0 +1,9 @@
+{"type": "project", "project_id": "icarus-daedalus", "name": "icarus-daedalus", "description": "shared brain for agents"}
+{"type": "agent.status", "agent_id": "icarus", "name": "Icarus", "platform": "hermes", "at": "2026-04-16T00:00:00Z", "current_task": "indexing fabric/wiki"}
+{"type": "agent.status", "agent_id": "daedalus", "name": "Daedalus", "platform": "hermes", "at": "2026-04-16T00:01:00Z"}
+{"type": "session.start", "session_id": "s-live-01", "agent_id": "icarus", "project_id": "icarus-daedalus", "at": "2026-04-16T00:02:00Z"}
+{"type": "memory.write", "agent_id": "icarus", "session_id": "s-live-01", "project_id": "icarus-daedalus", "kind": "decision", "title": "ship MVP with SQLite FTS5", "body": "Keeps local dev zero-dep. Move to Postgres when we outgrow it.", "at": "2026-04-16T00:03:00Z"}
+{"type": "memory.write", "agent_id": "daedalus", "session_id": "s-live-01", "project_id": "icarus-daedalus", "kind": "fact", "title": "Hermes events stream to events.jsonl", "body": "Cursor-based tail; graduates to pubsub later.", "at": "2026-04-16T00:04:00Z"}
+{"type": "memory.recall", "agent_id": "daedalus", "session_id": "s-live-01", "query": "deploy", "returned_entry_ids": [], "was_useful": false, "at": "2026-04-16T00:05:00Z"}
+{"type": "agent.event", "agent_id": "icarus", "session_id": "s-live-01", "kind": "handoff", "payload": {"to": "daedalus", "note": "take over the ingest test"}, "at": "2026-04-16T00:06:00Z"}
+{"type": "session.end", "session_id": "s-live-01", "at": "2026-04-16T00:10:00Z", "summary": "verified ingest end-to-end"}

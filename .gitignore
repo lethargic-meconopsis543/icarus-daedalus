@@ -10,3 +10,9 @@ messages.db
 archive/
 compaction-history.md
 training-data/
+node_modules/
+dist/
+.vite/
+tsconfig.tsbuildinfo
+*.egg-info/
+dashboard.old/
